@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useChatStore } from '@/store/chatStore'
 import type { ChatMessage, ReservationIntent } from '@/types'
 
 // ----------------------------------------------------------------
@@ -23,21 +24,12 @@ function makeId(): string {
   return Math.random().toString(36).slice(2)
 }
 
-const WELCOME: ChatMessage = {
-  id:        'welcome',
-  role:      'assistant',
-  content:   '¡Hola! Soy el asistente de reservas de Mesa Fácil 🍽️\n¿Para qué fecha y cuántas personas querés reservar?',
-  timestamp: new Date(),
-}
-
 // ----------------------------------------------------------------
 // Hook
 // ----------------------------------------------------------------
 export function useChat(slots: string[]) {
-  const [messages, setMessages]   = useState<ChatMessage[]>([WELCOME])
-  const [intent,   setIntent]     = useState<ReservationIntent | null>(null)
+  const { messages, intent, error, addMessage, setIntent, setError, reset } = useChatStore()
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError]         = useState<string | null>(null)
 
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || isLoading) return
@@ -49,11 +41,10 @@ export function useChat(slots: string[]) {
       content:   text.trim(),
       timestamp: new Date(),
     }
-    setMessages(prev => [...prev, userMsg])
+    addMessage(userMsg)
     setIsLoading(true)
 
     try {
-      // Build history for the API (skip the welcome message)
       const history = [...messages.filter(m => m.id !== 'welcome'), userMsg]
         .map(m => ({ role: m.role, content: m.content }))
 
@@ -73,20 +64,14 @@ export function useChat(slots: string[]) {
         content:   visible,
         timestamp: new Date(),
       }
-      setMessages(prev => [...prev, assistantMsg])
+      addMessage(assistantMsg)
       if (parsed) setIntent(parsed)
-    } catch (err) {
+    } catch {
       setError('No se pudo contactar al asistente. Revisá tu conexión.')
     } finally {
       setIsLoading(false)
     }
-  }, [messages, isLoading, slots])
-
-  const reset = useCallback(() => {
-    setMessages([WELCOME])
-    setIntent(null)
-    setError(null)
-  }, [])
+  }, [messages, isLoading, slots, addMessage, setIntent, setError])
 
   return { messages, intent, isLoading, error, sendMessage, reset }
 }

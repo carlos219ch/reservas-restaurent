@@ -41,21 +41,19 @@ export default function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isLoading])
 
-  // Auto-create when confirmed
-  useEffect(() => {
-    if (!intent?.confirmed || !canBook || createReservation.isPending || createReservation.isSuccess) return
+  function handleConfirm() {
+    if (!canBook) return
     createReservation.mutate({
-      date:         intent.date!,
+      date:         intent!.date!,
       time_slot_id: matchedSlot!.id,
       table_id:     availableTable!.id,
-      guests:       intent.guests!,
-      occasion:     intent.occasion ?? 'ninguna',
-      notes:        intent.notes?.trim() || undefined,
+      guests:       intent!.guests!,
+      occasion:     intent!.occasion ?? 'ninguna',
+      notes:        intent!.notes?.trim() || undefined,
     }, {
       onSuccess: () => setSuccess(true),
     })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [intent?.confirmed])
+  }
 
   function handleSend() {
     if (!input.trim()) return
@@ -159,7 +157,7 @@ export default function ChatPage() {
         )}
 
         {/* Intent summary card */}
-        {canBook && !intent?.confirmed && (
+        {canBook && !createReservation.isSuccess && (
           <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">
             <p className="text-sm font-semibold text-primary">Resumen de tu reserva</p>
             <dl className="text-sm space-y-1">
@@ -184,16 +182,17 @@ export default function ChatPage() {
                 </div>
               )}
             </dl>
-            <p className="text-xs text-muted-foreground pt-1">
-              Decile al asistente "confirmo" para reservar, o pedí cambios.
-            </p>
+            <Button
+              className="w-full mt-1"
+              disabled={createReservation.isPending}
+              onClick={handleConfirm}
+            >
+              {createReservation.isPending ? 'Reservando…' : 'Confirmar reserva'}
+            </Button>
           </div>
         )}
 
-        {/* Creating reservation */}
-        {createReservation.isPending && (
-          <p className="text-xs text-muted-foreground text-center animate-pulse">Creando tu reserva…</p>
-        )}
+        {/* Reservation error */}
         {createReservation.isError && (
           <p className="text-xs text-destructive text-center">
             {createReservation.error instanceof Error

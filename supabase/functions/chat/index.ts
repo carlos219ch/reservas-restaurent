@@ -37,7 +37,7 @@ Reglas del bloque:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model:       'llama3-8b-8192',
+        model:       'llama-3.1-8b-instant',
         max_tokens:  600,
         temperature: 0.7,
         messages: [{ role: 'system', content: system }, ...messages],
@@ -45,6 +45,9 @@ Reglas del bloque:
     })
 
     const data    = await res.json()
+    console.log('Groq status:', res.status)
+    console.log('Groq response:', JSON.stringify(data))
+
     const content = data.choices?.[0]?.message?.content
       ?? 'Lo siento, ocurrió un error. ¿Podés intentarlo de nuevo?'
 
@@ -52,6 +55,7 @@ Reglas del bloque:
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {
+    console.log('Catch error:', String(err))
     return new Response(JSON.stringify({ error: String(err) }), {
       status:  500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
