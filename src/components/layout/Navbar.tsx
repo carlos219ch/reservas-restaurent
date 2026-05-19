@@ -5,8 +5,9 @@ import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 
 const navLinks = [
-  { to: '/', label: 'Inicio', end: true },
-  { to: '/reservar', label: 'Reservar', end: false },
+  { to: '/',           label: 'Inicio',       end: true  },
+  { to: '/reservar',   label: 'Reservar',     end: false },
+  { to: '/chat',       label: 'Reservar con IA', end: false },
   { to: '/mis-reservas', label: 'Mis reservas', end: false },
 ] as const
 

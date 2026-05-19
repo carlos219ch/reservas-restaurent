@@ -11,6 +11,7 @@ const AdminLayout    = lazy(() => import('@/components/layout/AdminLayout'))
 const HomePage       = lazy(() => import('@/pages/client/HomePage'))
 const ReservePage    = lazy(() => import('@/pages/client/ReservePage'))
 const MyReservationsPage = lazy(() => import('@/pages/client/MyReservationsPage'))
+const ChatPage           = lazy(() => import('@/pages/client/ChatPage'))
 const DashboardPage      = lazy(() => import('@/pages/admin/DashboardPage'))
 const CalendarPage       = lazy(() => import('@/pages/admin/CalendarPage'))
 const ReservationsPage   = lazy(() => import('@/pages/admin/ReservationsPage'))
@@ -83,7 +84,8 @@ export function AppRouter() {
             element={<ProtectedRoute><ClientLayout /></ProtectedRoute>}
           >
             <Route index element={<HomePage />} />
-            <Route path="reservar" element={<ReservePage />} />
+            <Route path="reservar"     element={<ReservePage />} />
+            <Route path="chat"         element={<ChatPage />} />
             <Route path="mis-reservas" element={<MyReservationsPage />} />
           </Route>
 
