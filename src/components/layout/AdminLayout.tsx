@@ -3,6 +3,8 @@ import { NavLink, Outlet, Link } from 'react-router-dom'
 import {
   LayoutDashboard,
   CalendarDays,
+  ClipboardList,
+  Users,
   Settings,
   UtensilsCrossed,
   LogOut,
@@ -13,9 +15,11 @@ import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 
 const adminNavLinks = [
-  { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/admin/calendario', label: 'Calendario', icon: CalendarDays, end: false },
-  { to: '/admin/ajustes', label: 'Ajustes', icon: Settings, end: false },
+  { to: '/admin',               label: 'Dashboard',      icon: LayoutDashboard, end: true  },
+  { to: '/admin/calendario',    label: 'Calendario',     icon: CalendarDays,    end: false },
+  { to: '/admin/reservas',      label: 'Reservas',       icon: ClipboardList,   end: false },
+  { to: '/admin/lista-espera',  label: 'Lista de espera', icon: Users,          end: false },
+  { to: '/admin/ajustes',       label: 'Ajustes',        icon: Settings,        end: false },
 ] as const
 
 export default function AdminLayout() {

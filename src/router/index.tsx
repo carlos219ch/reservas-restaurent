@@ -11,9 +11,11 @@ const AdminLayout    = lazy(() => import('@/components/layout/AdminLayout'))
 const HomePage       = lazy(() => import('@/pages/client/HomePage'))
 const ReservePage    = lazy(() => import('@/pages/client/ReservePage'))
 const MyReservationsPage = lazy(() => import('@/pages/client/MyReservationsPage'))
-const DashboardPage  = lazy(() => import('@/pages/admin/DashboardPage'))
-const CalendarPage   = lazy(() => import('@/pages/admin/CalendarPage'))
-const SettingsPage   = lazy(() => import('@/pages/admin/SettingsPage'))
+const DashboardPage      = lazy(() => import('@/pages/admin/DashboardPage'))
+const CalendarPage       = lazy(() => import('@/pages/admin/CalendarPage'))
+const ReservationsPage   = lazy(() => import('@/pages/admin/ReservationsPage'))
+const WaitlistPage       = lazy(() => import('@/pages/admin/WaitlistPage'))
+const SettingsPage       = lazy(() => import('@/pages/admin/SettingsPage'))
 
 // -----------------------------------------------------------------
 // Componentes de carga y guardias de ruta
@@ -92,7 +94,9 @@ export function AppRouter() {
           >
             <Route index element={<DashboardPage />} />
             <Route path="calendario" element={<CalendarPage />} />
-            <Route path="ajustes" element={<SettingsPage />} />
+            <Route path="reservas"      element={<ReservationsPage />} />
+            <Route path="lista-espera" element={<WaitlistPage />} />
+            <Route path="ajustes"      element={<SettingsPage />} />
           </Route>
 
           {/* Ruta 404 */}

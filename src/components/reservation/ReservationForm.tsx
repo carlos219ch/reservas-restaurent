@@ -6,11 +6,13 @@ import { es } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
 import DatePicker from './DatePicker'
 import TimeSlotPicker from './TimeSlotPicker'
+import FloorPlan from './FloorPlan'
+import { useFloorPlanImage } from '@/hooks/useFloorPlanImage'
 import { useTimeSlots } from '@/hooks/useTimeSlots'
 import { useAvailability } from '@/hooks/useAvailability'
 import { useCreateReservation } from '@/hooks/useReservations'
 import { useReservationStore } from '@/store/reservationStore'
-import type { SpecialOccasion, TableWithAvailability } from '@/types'
+import type { SpecialOccasion } from '@/types'
 
 // ----------------------------------------------------------------
 // Constantes
@@ -41,7 +43,8 @@ export default function ReservationForm() {
 
   const { data: slots = [], isLoading: slotsLoading } = useTimeSlots()
   const { tablesWithAvailability, isLoading: availLoading } = useAvailability(date, timeSlotId)
-  const createReservation = useCreateReservation()
+  const createReservation   = useCreateReservation()
+  const { data: floorPlanUrl } = useFloorPlanImage()
 
   const selectedSlot = slots.find(s => s.id === timeSlotId)
   const selectedTable = tablesWithAvailability.find(t => t.id === tableId)
@@ -187,34 +190,27 @@ export default function ReservationForm() {
           </div>
 
           <section>
-            <h2 className="text-sm font-semibold mb-3">Mesas disponibles</h2>
+            <h2 className="text-sm font-semibold mb-3">Plano del restaurante</h2>
             {availLoading ? (
-              <div className="grid grid-cols-2 gap-3">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="h-24 rounded-xl bg-muted animate-pulse" />
-                ))}
-              </div>
-            ) : availableTables.length === 0 ? (
-              <div className="rounded-xl border bg-card p-6 text-center space-y-3">
-                <p className="font-medium">No hay mesas disponibles</p>
-                <p className="text-sm text-muted-foreground">
-                  Prueba con otro horario o fecha.
-                </p>
-                <Button variant="outline" size="sm" onClick={() => setStep(0)}>
-                  Cambiar fecha u hora
-                </Button>
-              </div>
+              <div className="rounded-xl border bg-muted/20 animate-pulse" style={{ height: '260px' }} />
             ) : (
-              <div className="grid grid-cols-2 gap-3">
-                {availableTables.map(table => (
-                  <TableCard
-                    key={table.id}
-                    table={table}
-                    selected={tableId === table.id}
-                    onSelect={() => setTable(table.id)}
-                  />
-                ))}
-              </div>
+              <>
+                <FloorPlan
+                  tables={tablesWithAvailability}
+                  selectedId={tableId}
+                  guests={guests}
+                  onSelect={setTable}
+                  backgroundUrl={floorPlanUrl ?? undefined}
+                />
+                {availableTables.length === 0 && (
+                  <div className="rounded-xl border bg-card p-4 text-center space-y-2 mt-3">
+                    <p className="text-sm font-medium">No hay mesas disponibles para {guests} {guests === 1 ? 'persona' : 'personas'}</p>
+                    <Button variant="outline" size="sm" onClick={() => setStep(0)}>
+                      Cambiar fecha u hora
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </section>
 
@@ -318,34 +314,3 @@ export default function ReservationForm() {
   )
 }
 
-// ----------------------------------------------------------------
-// Sub-componente: tarjeta de mesa
-// ----------------------------------------------------------------
-interface TableCardProps {
-  table: TableWithAvailability
-  selected: boolean
-  onSelect: () => void
-}
-
-function TableCard({ table, selected, onSelect }: TableCardProps) {
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={[
-        'rounded-xl border p-4 text-left transition-all',
-        selected
-          ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-          : 'border-border hover:border-muted-foreground/40 hover:bg-muted/40',
-      ].join(' ')}
-    >
-      <p className="font-semibold text-sm">Mesa #{table.number}</p>
-      <p className="text-xs text-muted-foreground mt-1">
-        {table.capacity} personas · {table.zone?.name ?? 'Sin zona'}
-      </p>
-      {selected && (
-        <p className="text-xs text-primary font-medium mt-2">Seleccionada ✓</p>
-      )}
-    </button>
-  )
-}
