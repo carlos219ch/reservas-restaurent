@@ -10,11 +10,12 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 interface DatePickerProps {
   value: string | null
   onChange: (date: string) => void
+  blockedDates?: string[]
 }
 
 const WEEKDAYS = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'Do']
 
-export default function DatePicker({ value, onChange }: DatePickerProps) {
+export default function DatePicker({ value, onChange, blockedDates = [] }: DatePickerProps) {
   const today = startOfToday()
   const [viewMonth, setViewMonth] = useState(() => startOfMonth(today))
 
@@ -65,7 +66,10 @@ export default function DatePicker({ value, onChange }: DatePickerProps) {
           <div key={`pad-${i}`} />
         ))}
         {days.map(day => {
-          const isPast = isBefore(day, today)
+          const dayStr    = format(day, 'yyyy-MM-dd')
+          const isPast    = isBefore(day, today)
+          const isBlocked = blockedDates.includes(dayStr)
+          const isDisabled = isPast || isBlocked
           const isSelected = selectedDate ? isSameDay(day, selectedDate) : false
           const isTodayDay = isToday(day)
 
@@ -73,11 +77,14 @@ export default function DatePicker({ value, onChange }: DatePickerProps) {
             <button
               key={day.toISOString()}
               type="button"
-              onClick={() => !isPast && onChange(format(day, 'yyyy-MM-dd'))}
-              disabled={isPast}
+              title={isBlocked ? 'Fecha no disponible' : undefined}
+              onClick={() => !isDisabled && onChange(dayStr)}
+              disabled={isDisabled}
               className={[
                 'aspect-square flex items-center justify-center text-sm rounded-lg transition-colors',
-                isPast ? 'text-muted-foreground/40 cursor-not-allowed' : 'cursor-pointer hover:bg-muted',
+                isDisabled ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-muted',
+                isPast    ? 'text-muted-foreground/40' : '',
+                isBlocked && !isSelected ? 'bg-destructive/10 text-destructive line-through' : '',
                 isSelected ? 'bg-primary text-primary-foreground hover:bg-primary/90 font-medium' : '',
                 isTodayDay && !isSelected ? 'font-semibold text-primary' : '',
               ].join(' ')}

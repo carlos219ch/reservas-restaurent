@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { Clock, LayoutGrid, MapPin, ImagePlus, Trash2, Map } from 'lucide-react'
+import { Clock, LayoutGrid, MapPin, ImagePlus, Trash2, Map, CalendarOff } from 'lucide-react'
 import {
   useAllTimeSlots, useToggleTimeSlot,
   useAllTables,    useToggleTable,
@@ -8,7 +8,10 @@ import {
 import {
   useFloorPlanImage, useUploadFloorPlan, useRemoveFloorPlan,
 } from '@/hooks/useFloorPlanImage'
+import { useBlockedDates, useBlockDate, useUnblockDate } from '@/hooks/useBlockedDates'
 import { Button } from '@/components/ui/button'
+import { format, parseISO } from 'date-fns'
+import { es } from 'date-fns/locale'
 import type { TimeSlot, Table, Zone } from '@/types'
 
 // ----------------------------------------------------------------
@@ -178,6 +181,102 @@ function ZonasSection() {
 }
 
 // ----------------------------------------------------------------
+// Section: Fechas bloqueadas
+// ----------------------------------------------------------------
+function FechasSection() {
+  const [date, setDate]     = useState('')
+  const [reason, setReason] = useState('')
+
+  const { data = [], isLoading } = useBlockedDates()
+  const blockMutation   = useBlockDate()
+  const unblockMutation = useUnblockDate()
+
+  const today = new Date().toISOString().slice(0, 10)
+
+  function handleBlock() {
+    if (!date) return
+    blockMutation.mutate({ date, reason: reason.trim() || undefined }, {
+      onSuccess: () => { setDate(''); setReason('') },
+    })
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Formulario para agregar */}
+      <div className="rounded-xl border bg-card p-5 space-y-4">
+        <p className="text-sm font-medium">Bloquear fecha</p>
+        <div className="flex gap-3 flex-wrap">
+          <input
+            type="date"
+            value={date}
+            min={today}
+            onChange={e => setDate(e.target.value)}
+            className="rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+          />
+          <input
+            type="text"
+            value={reason}
+            onChange={e => setReason(e.target.value)}
+            placeholder="Motivo (opcional)"
+            className="flex-1 min-w-40 rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+          />
+          <Button
+            size="sm"
+            disabled={!date || blockMutation.isPending}
+            onClick={handleBlock}
+            className="gap-2"
+          >
+            <CalendarOff className="h-4 w-4" />
+            {blockMutation.isPending ? 'Bloqueando…' : 'Bloquear'}
+          </Button>
+        </div>
+        {blockMutation.isError && (
+          <p className="text-xs text-destructive">
+            {blockMutation.error instanceof Error ? blockMutation.error.message : 'Error al bloquear'}
+          </p>
+        )}
+      </div>
+
+      {/* Lista de fechas bloqueadas */}
+      <div className="divide-y rounded-xl border bg-card">
+        {isLoading ? (
+          <SectionSkeleton rows={3} />
+        ) : data.length === 0 ? (
+          <p className="px-5 py-8 text-center text-sm text-muted-foreground">
+            No hay fechas bloqueadas.
+          </p>
+        ) : (
+          data.map(entry => (
+            <div key={entry.id} className="flex items-center justify-between px-5 py-3">
+              <div className="flex items-center gap-3">
+                <CalendarOff className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div>
+                  <p className="text-sm font-medium capitalize">
+                    {format(parseISO(entry.date), "EEEE d 'de' MMMM yyyy", { locale: es })}
+                  </p>
+                  {entry.reason && (
+                    <p className="text-xs text-muted-foreground">{entry.reason}</p>
+                  )}
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={unblockMutation.isPending && unblockMutation.variables === entry.id}
+                onClick={() => unblockMutation.mutate(entry.id)}
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ----------------------------------------------------------------
 // Skeleton
 // ----------------------------------------------------------------
 function SectionSkeleton({ rows }: { rows: number }) {
@@ -341,13 +440,14 @@ function PlanoSection() {
 // ----------------------------------------------------------------
 // Tabs
 // ----------------------------------------------------------------
-type Tab = 'horarios' | 'mesas' | 'zonas' | 'plano'
+type Tab = 'horarios' | 'mesas' | 'zonas' | 'plano' | 'fechas'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'horarios', label: 'Horarios' },
   { id: 'mesas',    label: 'Mesas'    },
   { id: 'zonas',    label: 'Zonas'    },
   { id: 'plano',    label: 'Plano'    },
+  { id: 'fechas',   label: 'Fechas'   },
 ]
 
 // ----------------------------------------------------------------
@@ -388,6 +488,7 @@ export default function SettingsPage() {
       {tab === 'mesas'    && <MesasSection />}
       {tab === 'zonas'    && <ZonasSection />}
       {tab === 'plano'    && <PlanoSection />}
+      {tab === 'fechas'   && <FechasSection />}
     </div>
   )
 }

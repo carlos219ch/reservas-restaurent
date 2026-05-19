@@ -12,6 +12,7 @@ import { useTimeSlots } from '@/hooks/useTimeSlots'
 import { useAvailability } from '@/hooks/useAvailability'
 import { useCreateReservation } from '@/hooks/useReservations'
 import { useReservationStore } from '@/store/reservationStore'
+import { useBlockedDates } from '@/hooks/useBlockedDates'
 import type { SpecialOccasion } from '@/types'
 
 // ----------------------------------------------------------------
@@ -45,6 +46,8 @@ export default function ReservationForm() {
   const { tablesWithAvailability, isLoading: availLoading } = useAvailability(date, timeSlotId)
   const createReservation   = useCreateReservation()
   const { data: floorPlanUrl } = useFloorPlanImage()
+  const { data: blockedDatesData = [] } = useBlockedDates()
+  const blockedDateStrings = blockedDatesData.map(b => b.date)
 
   const selectedSlot = slots.find(s => s.id === timeSlotId)
   const selectedTable = tablesWithAvailability.find(t => t.id === tableId)
@@ -125,7 +128,7 @@ export default function ReservationForm() {
           <section>
             <h2 className="text-sm font-semibold mb-2">Fecha</h2>
             <div className="rounded-xl border bg-card p-4">
-              <DatePicker value={date} onChange={setDate} />
+              <DatePicker value={date} onChange={setDate} blockedDates={blockedDateStrings} />
             </div>
           </section>
 
