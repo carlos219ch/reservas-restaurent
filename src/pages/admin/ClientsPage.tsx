@@ -179,14 +179,14 @@ export default function ClientsPage() {
     else { setSortBy(key); setSortAsc(key === 'name') }
   }
 
-  const SortBtn = ({ label, key }: { label: string; key: SortKey }) => (
+  const SortBtn = ({ label, sortKey }: { label: string; sortKey: SortKey }) => (
     <button
-      onClick={() => toggleSort(key)}
+      onClick={() => toggleSort(sortKey)}
       className={`text-xs font-medium transition-colors ${
-        sortBy === key ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+        sortBy === sortKey ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
       }`}
     >
-      {label} {sortBy === key ? (sortAsc ? '↑' : '↓') : ''}
+      {label} {sortBy === sortKey ? (sortAsc ? '↑' : '↓') : ''}
     </button>
   )
 
@@ -236,10 +236,10 @@ export default function ClientsPage() {
 
         <div className="flex items-center gap-3 text-sm">
           <span className="text-xs text-muted-foreground">Ordenar:</span>
-          <SortBtn label="Nombre"    key="name"   />
-          <SortBtn label="Reservas"  key="total"  />
-          <SortBtn label="No-show"   key="noshow" />
-          <SortBtn label="Última"    key="last"   />
+          <SortBtn label="Nombre"   sortKey="name"   />
+          <SortBtn label="Reservas" sortKey="total"  />
+          <SortBtn label="No-show"  sortKey="noshow" />
+          <SortBtn label="Última"   sortKey="last"   />
         </div>
       </div>
 

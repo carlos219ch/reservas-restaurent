@@ -52,13 +52,4 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-  // Recharts usa internamente require() — esto lo convierte correctamente para ESM
-  optimizeDeps: {
-    include: ['recharts'],
-  },
-  build: {
-    commonjsOptions: {
-      include: [/recharts/, /node_modules/],
-    },
-  },
 })

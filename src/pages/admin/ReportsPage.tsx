@@ -6,7 +6,6 @@
 import { useState } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  // eslint-disable-next-line @typescript-eslint/no-deprecated
   PieChart, Pie, Cell, Legend,
   LineChart, Line,
 } from 'recharts'
@@ -303,7 +302,8 @@ export default function ReportsPage() {
                   width={36}
                 />
                 <Tooltip
-                  formatter={(v) => [`${v ?? 0}%`, 'No-show'] as [string, string]}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  formatter={(v: any) => [`${v ?? 0}%`, 'No-show']}
                   contentStyle={{
                     fontSize: 11,
                     borderRadius: 8,
