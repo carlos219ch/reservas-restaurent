@@ -11,7 +11,7 @@ const AdminLayout    = lazy(() => import('@/components/layout/AdminLayout'))
 const HomePage       = lazy(() => import('@/pages/client/HomePage'))
 const ReservePage    = lazy(() => import('@/pages/client/ReservePage'))
 const MyReservationsPage = lazy(() => import('@/pages/client/MyReservationsPage'))
-const ChatPage           = lazy(() => import('@/pages/client/ChatPage'))
+// ChatPage ya no es una ruta directa — el chat está en el FAB flotante
 const DashboardPage      = lazy(() => import('@/pages/admin/DashboardPage'))
 const CalendarPage       = lazy(() => import('@/pages/admin/CalendarPage'))
 const ReservationsPage   = lazy(() => import('@/pages/admin/ReservationsPage'))
@@ -19,6 +19,7 @@ const WaitlistPage       = lazy(() => import('@/pages/admin/WaitlistPage'))
 const SettingsPage       = lazy(() => import('@/pages/admin/SettingsPage'))
 const ReportsPage        = lazy(() => import('@/pages/admin/ReportsPage'))
 const ClientsPage        = lazy(() => import('@/pages/admin/ClientsPage'))
+const MenuPage           = lazy(() => import('@/pages/admin/MenuPage'))
 
 // -----------------------------------------------------------------
 // Componentes de carga y guardias de ruta
@@ -87,7 +88,7 @@ export function AppRouter() {
           >
             <Route index element={<HomePage />} />
             <Route path="reservar"     element={<ReservePage />} />
-            <Route path="chat"         element={<ChatPage />} />
+            <Route path="chat"         element={<Navigate to="/" replace />} />
             <Route path="mis-reservas" element={<MyReservationsPage />} />
           </Route>
 
@@ -101,6 +102,7 @@ export function AppRouter() {
             <Route path="reservas"     element={<ReservationsPage />} />
             <Route path="lista-espera" element={<WaitlistPage />} />
             <Route path="clientes"     element={<ClientsPage />} />
+            <Route path="carta"        element={<MenuPage />} />
             <Route path="reportes"     element={<ReportsPage />} />
             <Route path="ajustes"      element={<SettingsPage />} />
           </Route>

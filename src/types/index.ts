@@ -162,6 +162,32 @@ export interface CreateReviewDTO {
 }
 
 // ------------------------------------------------------------
+// Carta del restaurante
+// ------------------------------------------------------------
+export interface MenuItem {
+  id:          string
+  category:    string
+  name:        string
+  description: string | null
+  price:       number
+  available:   boolean
+  sort_order:  number
+  created_at:  string
+  updated_at:  string
+}
+
+export interface CreateMenuItemDTO {
+  category:     string
+  name:         string
+  description?: string | null
+  price:        number
+  available?:   boolean
+  sort_order?:  number
+}
+
+export type UpdateMenuItemDTO = Partial<CreateMenuItemDTO> & { id: string }
+
+// ------------------------------------------------------------
 // Métricas del admin
 // ------------------------------------------------------------
 export interface DashboardMetrics {

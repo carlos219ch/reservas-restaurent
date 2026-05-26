@@ -1,7 +1,7 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useChatStore } from '@/store/chatStore'
-import type { ChatMessage, ReservationIntent } from '@/types'
+import type { ChatMessage, MenuItem, ReservationIntent } from '@/types'
 
 // ----------------------------------------------------------------
 // Helpers
@@ -24,12 +24,40 @@ function makeId(): string {
   return Math.random().toString(36).slice(2)
 }
 
+// Convierte el array de ítems en texto para el sistema prompt
+function buildMenuContext(items: MenuItem[]): string {
+  const available = items.filter(i => i.available)
+  if (!available.length) return ''
+
+  // Agrupar por categoría
+  const byCategory = available.reduce<Record<string, MenuItem[]>>((acc, item) => {
+    if (!acc[item.category]) acc[item.category] = []
+    acc[item.category].push(item)
+    return acc
+  }, {})
+
+  return Object.entries(byCategory)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([cat, items]) => {
+      const lines = items.map(item => {
+        const price = `$${Number(item.price).toFixed(0)}`
+        const desc  = item.description ? ` — ${item.description}` : ''
+        return `  • ${item.name} (${price})${desc}`
+      }).join('\n')
+      return `${cat}:\n${lines}`
+    })
+    .join('\n\n')
+}
+
 // ----------------------------------------------------------------
 // Hook
 // ----------------------------------------------------------------
-export function useChat(slots: string[]) {
+export function useChat(slots: string[], menuItems: MenuItem[] = []) {
   const { messages, intent, error, addMessage, setIntent, setError, reset } = useChatStore()
   const [isLoading, setIsLoading] = useState(false)
+
+  // Formatear carta una sola vez mientras los ítems no cambian
+  const menuContext = useMemo(() => buildMenuContext(menuItems), [menuItems])
 
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || isLoading) return
@@ -49,7 +77,7 @@ export function useChat(slots: string[]) {
         .map(m => ({ role: m.role, content: m.content }))
 
       const { data, error: fnError } = await supabase.functions.invoke('chat', {
-        body: { messages: history, slots },
+        body: { messages: history, slots, menuContext },
       })
 
       if (fnError) throw fnError
@@ -71,7 +99,7 @@ export function useChat(slots: string[]) {
     } finally {
       setIsLoading(false)
     }
-  }, [messages, isLoading, slots, addMessage, setIntent, setError])
+  }, [messages, isLoading, slots, menuContext, addMessage, setIntent, setError])
 
   return { messages, intent, isLoading, error, sendMessage, reset }
 }

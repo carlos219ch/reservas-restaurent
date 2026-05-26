@@ -2,11 +2,12 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { CalendarPlus, Clock, Users, MapPin, AlertCircle, Pencil } from 'lucide-react'
+import { CalendarPlus, Clock, Users, MapPin, AlertCircle, Pencil, QrCode } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useMyReservations, useCancelReservation } from '@/hooks/useReservations'
 import EditReservationModal from '@/components/reservation/EditReservationModal'
 import ReviewModal from '@/components/reservation/ReviewModal'
+import QRModal from '@/components/reservation/QRModal'
 import { useReviewForReservation } from '@/hooks/useReviews'
 import { Star } from 'lucide-react'
 import type { Reservation, ReservationStatus } from '@/types'
@@ -53,6 +54,7 @@ function ReservationCard({ reservation, onCancel, cancelling }: ReservationCardP
   const [confirming,  setConfirming]  = useState(false)
   const [showEdit,    setShowEdit]    = useState(false)
   const [showReview,  setShowReview]  = useState(false)
+  const [showQR,      setShowQR]      = useState(false)
   const canCancel   = ACTIVE_STATUSES.includes(reservation.status)
   const canEdit     = ACTIVE_STATUSES.includes(reservation.status)
   const canReview   = reservation.status === 'completada'
@@ -72,6 +74,12 @@ function ReservationCard({ reservation, onCancel, cancelling }: ReservationCardP
         onClose={() => setShowReview(false)}
       />
     )}
+    {showQR && (
+      <QRModal
+        reservation={reservation}
+        onClose={() => setShowQR(false)}
+      />
+    )}
     <div className="rounded-xl border bg-card p-5 space-y-4">
       {/* Encabezado: fecha + badge */}
       <div className="flex items-start justify-between gap-3">
@@ -84,9 +92,22 @@ function ReservationCard({ reservation, onCancel, cancelling }: ReservationCardP
             <span>{reservation.time_slot?.slot_time.slice(0, 5) ?? '—'}</span>
           </div>
         </div>
-        <span className={`text-xs font-medium px-2.5 py-1 rounded-full shrink-0 ${STATUS_STYLES[reservation.status]}`}>
-          {STATUS_LABELS[reservation.status]}
-        </span>
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Botón QR — solo en reservas activas */}
+          {(canEdit) && (
+            <button
+              onClick={() => setShowQR(true)}
+              title="Ver QR de check-in"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-primary
+                         hover:bg-primary/10 transition-colors"
+            >
+              <QrCode className="h-4 w-4" />
+            </button>
+          )}
+          <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_STYLES[reservation.status]}`}>
+            {STATUS_LABELS[reservation.status]}
+          </span>
+        </div>
       </div>
 
       {/* Detalles */}

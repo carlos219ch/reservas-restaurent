@@ -14,11 +14,14 @@ import {
   UsersRound,
   Sun,
   Moon,
+  ScanLine,
+  BookOpen,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useDarkMode } from '@/hooks/useDarkMode'
 import { useRealtimeReservations } from '@/hooks/useRealtimeReservations'
 import { Button } from '@/components/ui/button'
+import QRScannerModal from '@/components/admin/QRScannerModal'
 
 const adminNavLinks = [
   { to: '/admin',               label: 'Dashboard',       icon: LayoutDashboard, end: true  },
@@ -26,6 +29,7 @@ const adminNavLinks = [
   { to: '/admin/reservas',      label: 'Reservas',        icon: ClipboardList,   end: false },
   { to: '/admin/lista-espera',  label: 'Lista de espera', icon: Users,           end: false },
   { to: '/admin/clientes',      label: 'Clientes',        icon: UsersRound,      end: false },
+  { to: '/admin/carta',         label: 'Carta',           icon: BookOpen,        end: false },
   { to: '/admin/reportes',      label: 'Reportes',        icon: BarChart2,       end: false },
   { to: '/admin/ajustes',       label: 'Ajustes',         icon: Settings,        end: false },
 ] as const
@@ -33,13 +37,16 @@ const adminNavLinks = [
 export default function AdminLayout() {
   const { profile, signOut } = useAuth()
   const { isDark, toggle: toggleDark } = useDarkMode()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarOpen,  setSidebarOpen]  = useState(false)
+  const [showScanner,  setShowScanner]  = useState(false)
   useRealtimeReservations()   // ← suscripción global mientras el admin está activo
 
   const initials = profile?.full_name?.[0]?.toUpperCase() ?? 'A'
 
   return (
     <div className="flex min-h-screen text-left">
+
+      {showScanner && <QRScannerModal onClose={() => setShowScanner(false)} />}
 
       {/* Mobile overlay */}
       {sidebarOpen && (
@@ -76,8 +83,20 @@ export default function AdminLayout() {
           </button>
         </div>
 
+        {/* Botón check-in QR */}
+        <div className="px-3 pb-2">
+          <button
+            onClick={() => { setSidebarOpen(false); setShowScanner(true) }}
+            className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium
+                       bg-primary/10 text-primary hover:bg-primary/15 transition-colors"
+          >
+            <ScanLine className="h-4 w-4 shrink-0" />
+            Check-in QR
+          </button>
+        </div>
+
         {/* Nav */}
-        <nav className="flex-1 space-y-1 p-3">
+        <nav className="flex-1 space-y-1 p-3 pt-0">
           {adminNavLinks.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
@@ -142,7 +161,14 @@ export default function AdminLayout() {
           >
             <Menu className="h-5 w-5" />
           </button>
-          <span className="font-semibold">Panel Admin</span>
+          <span className="font-semibold flex-1">Panel Admin</span>
+          <button
+            onClick={() => setShowScanner(true)}
+            title="Check-in QR"
+            className="p-2 rounded-lg text-primary hover:bg-primary/10 transition-colors"
+          >
+            <ScanLine className="h-5 w-5" />
+          </button>
         </header>
 
         <main className="flex-1 p-4 md:p-6">
