@@ -2,9 +2,13 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { CalendarPlus, Clock, Users, MapPin, AlertCircle } from 'lucide-react'
+import { CalendarPlus, Clock, Users, MapPin, AlertCircle, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useMyReservations, useCancelReservation } from '@/hooks/useReservations'
+import EditReservationModal from '@/components/reservation/EditReservationModal'
+import ReviewModal from '@/components/reservation/ReviewModal'
+import { useReviewForReservation } from '@/hooks/useReviews'
+import { Star } from 'lucide-react'
 import type { Reservation, ReservationStatus } from '@/types'
 
 // ----------------------------------------------------------------
@@ -46,10 +50,28 @@ interface ReservationCardProps {
 }
 
 function ReservationCard({ reservation, onCancel, cancelling }: ReservationCardProps) {
-  const [confirming, setConfirming] = useState(false)
-  const canCancel = ACTIVE_STATUSES.includes(reservation.status)
+  const [confirming,  setConfirming]  = useState(false)
+  const [showEdit,    setShowEdit]    = useState(false)
+  const [showReview,  setShowReview]  = useState(false)
+  const canCancel   = ACTIVE_STATUSES.includes(reservation.status)
+  const canEdit     = ACTIVE_STATUSES.includes(reservation.status)
+  const canReview   = reservation.status === 'completada'
+  const { data: existingReview } = useReviewForReservation(reservation.id)
 
   return (
+    <>
+    {showEdit && (
+      <EditReservationModal
+        reservation={reservation}
+        onClose={() => setShowEdit(false)}
+      />
+    )}
+    {showReview && (
+      <ReviewModal
+        reservation={reservation}
+        onClose={() => setShowReview(false)}
+      />
+    )}
     <div className="rounded-xl border bg-card p-5 space-y-4">
       {/* Encabezado: fecha + badge */}
       <div className="flex items-start justify-between gap-3">
@@ -94,48 +116,91 @@ function ReservationCard({ reservation, onCancel, cancelling }: ReservationCardP
         </p>
       )}
 
-      {/* Acción de cancelación */}
-      {canCancel && (
+      {/* Reseña — solo para completadas */}
+      {canReview && (
         <div className="border-t pt-3">
-          {!confirming ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setConfirming(true)}
-              className="text-destructive hover:text-destructive hover:bg-destructive/10 w-full"
-            >
-              Cancelar reserva
-            </Button>
-          ) : (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-destructive">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                <span>¿Confirmas la cancelación?</span>
+          {existingReview ? (
+            <div className="flex items-center gap-2">
+              <div className="flex gap-0.5">
+                {[1,2,3,4,5].map(i => (
+                  <Star key={i} className={`h-3.5 w-3.5 ${i <= existingReview.rating ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/30'}`} />
+                ))}
               </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => setConfirming(false)}
-                  disabled={cancelling}
-                >
-                  No, volver
-                </Button>
-                <Button
-                  size="sm"
-                  className="flex-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
-                  onClick={() => onCancel(reservation.id)}
-                  disabled={cancelling}
-                >
-                  {cancelling ? 'Cancelando…' : 'Sí, cancelar'}
-                </Button>
-              </div>
+              <span className="text-xs text-muted-foreground">Tu reseña</span>
             </div>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowReview(true)}
+              className="w-full gap-2"
+            >
+              <Star className="h-3.5 w-3.5" />
+              Dejar reseña
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Acciones: editar + cancelar */}
+      {(canEdit || canCancel) && (
+        <div className="border-t pt-3 space-y-2">
+          {/* Botón editar */}
+          {canEdit && !confirming && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowEdit(true)}
+              className="w-full gap-2"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              Modificar reserva
+            </Button>
+          )}
+
+          {/* Cancelación con confirmación */}
+          {canCancel && (
+            !confirming ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setConfirming(true)}
+                className="text-destructive hover:text-destructive hover:bg-destructive/10 w-full"
+              >
+                Cancelar reserva
+              </Button>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-destructive">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>¿Confirmas la cancelación?</span>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => setConfirming(false)}
+                    disabled={cancelling}
+                  >
+                    No, volver
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="flex-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                    onClick={() => onCancel(reservation.id)}
+                    disabled={cancelling}
+                  >
+                    {cancelling ? 'Cancelando…' : 'Sí, cancelar'}
+                  </Button>
+                </div>
+              </div>
+            )
           )}
         </div>
       )}
     </div>
+    </>
   )
 }
 

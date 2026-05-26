@@ -47,7 +47,7 @@ export function useDashboardMetrics() {
       // Hora pico: slot con más reservas no canceladas
       const slotCounts: Record<string, number> = {}
       for (const r of active) {
-        const slot = r.time_slot as { slot_time: string } | null
+        const slot = r.time_slot as unknown as { slot_time: string } | null
         const time = slot?.slot_time?.slice(0, 5) ?? 'Sin hora'
         slotCounts[time] = (slotCounts[time] ?? 0) + 1
       }

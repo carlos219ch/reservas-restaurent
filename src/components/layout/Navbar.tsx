@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { NavLink, Link } from 'react-router-dom'
-import { Menu, X, UtensilsCrossed, LogOut, User } from 'lucide-react'
+import { Menu, X, UtensilsCrossed, LogOut, User, Sun, Moon } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
+import { useDarkMode } from '@/hooks/useDarkMode'
 import { Button } from '@/components/ui/button'
 
 const navLinks = [
@@ -13,6 +14,7 @@ const navLinks = [
 
 export default function Navbar() {
   const { profile, signOut } = useAuth()
+  const { isDark, toggle: toggleDark } = useDarkMode()
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
@@ -49,6 +51,13 @@ export default function Navbar() {
         {/* Desktop user menu */}
         <div className="hidden md:flex items-center gap-3">
           <span className="text-sm text-muted-foreground">{profile?.full_name}</span>
+          <button
+            onClick={toggleDark}
+            title={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          >
+            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
           <Button variant="ghost" size="sm" onClick={signOut} className="gap-2">
             <LogOut className="h-4 w-4" />
             Salir
@@ -91,10 +100,19 @@ export default function Navbar() {
               <User className="h-4 w-4" />
               <span>{profile?.full_name}</span>
             </div>
-            <Button variant="ghost" size="sm" onClick={signOut} className="gap-2">
-              <LogOut className="h-4 w-4" />
-              Salir
-            </Button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={toggleDark}
+                title={isDark ? 'Modo claro' : 'Modo oscuro'}
+                className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </button>
+              <Button variant="ghost" size="sm" onClick={signOut} className="gap-2">
+                <LogOut className="h-4 w-4" />
+                Salir
+              </Button>
+            </div>
           </div>
         </div>
       )}

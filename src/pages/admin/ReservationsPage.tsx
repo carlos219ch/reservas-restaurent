@@ -1,10 +1,11 @@
 import { useState, useMemo, useEffect } from 'react'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { Search, X, CheckCircle2, XCircle, Clock3, Ban, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, X, CheckCircle2, XCircle, Clock3, Ban, ChevronLeft, ChevronRight, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useAdminReservations } from '@/hooks/useReservations'
-import { useUpdateReservation } from '@/hooks/useReservations'
+import { useAdminReservations, useUpdateReservation } from '@/hooks/useReservations'
+import ReservationDetailDrawer from '@/components/admin/ReservationDetailDrawer'
+import { exportReservationsToCSV } from '@/lib/exportCSV'
 import type { Reservation, ReservationStatus } from '@/types'
 
 // ----------------------------------------------------------------
@@ -133,6 +134,7 @@ export default function ReservationsPage() {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo,   setDateTo]   = useState('')
   const [page,     setPage]     = useState(1)
+  const [selected, setSelected] = useState<Reservation | null>(null)
 
   const { data: all = [], isLoading } = useAdminReservations({ status, dateFrom, dateTo })
   const updateMutation = useUpdateReservation()
@@ -161,13 +163,35 @@ export default function ReservationsPage() {
   }
 
   return (
+    <>
+    {selected && (
+      <ReservationDetailDrawer
+        reservation={selected}
+        onClose={() => setSelected(null)}
+      />
+    )}
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Reservas</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Historial completo con filtros y acciones rápidas.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Reservas</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Historial completo con filtros y acciones rápidas.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2 shrink-0"
+          disabled={filtered.length === 0}
+          onClick={() => {
+            const ts = format(new Date(), 'yyyyMMdd-HHmm')
+            exportReservationsToCSV(filtered, `reservas-${ts}.csv`)
+          }}
+        >
+          <Download className="h-4 w-4" />
+          Exportar CSV
+        </Button>
       </div>
 
       {/* Filters */}
@@ -252,12 +276,21 @@ export default function ReservationsPage() {
           {/* List */}
           <div className="rounded-xl border bg-card px-5">
             {items.map(r => (
-              <ReservationRow
+              <div
                 key={r.id}
-                r={r}
-                onUpdate={(id, s) => updateMutation.mutate({ id, status: s })}
-                updating={updateMutation.isPending && updateMutation.variables?.id === r.id}
-              />
+                className="cursor-pointer hover:bg-muted/30 -mx-5 px-5 rounded-lg transition-colors"
+                onClick={(e) => {
+                  // No abrir el drawer si hicieron click en un botón de acción
+                  if ((e.target as HTMLElement).closest('button')) return
+                  setSelected(r)
+                }}
+              >
+                <ReservationRow
+                  r={r}
+                  onUpdate={(id, s) => updateMutation.mutate({ id, status: s })}
+                  updating={updateMutation.isPending && updateMutation.variables?.id === r.id}
+                />
+              </div>
             ))}
           </div>
 
@@ -292,5 +325,6 @@ export default function ReservationsPage() {
         </>
       )}
     </div>
+    </>
   )
 }

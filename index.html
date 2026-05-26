@@ -1,10 +1,28 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>reservas-restaurant</title>
+
+    <!-- PWA / SEO -->
+    <title>Mesa Fácil — Reservas de restaurante</title>
+    <meta name="description"   content="Reserva tu mesa de forma rápida y sencilla." />
+    <meta name="theme-color"   content="#000000" />
+    <meta name="mobile-web-app-capable"          content="yes" />
+    <meta name="apple-mobile-web-app-capable"    content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title"      content="Mesa Fácil" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+
+    <!-- Script de tema oscuro inline: evita FOUC (flash of unstyled content) -->
+    <script>
+      ;(function(){
+        var t = localStorage.getItem('theme')
+        var dark = t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        if (dark) document.documentElement.classList.add('dark')
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -142,6 +142,26 @@ export interface BlockedDate {
 }
 
 // ------------------------------------------------------------
+// Reseñas
+// ------------------------------------------------------------
+export interface Review {
+  id:             string
+  reservation_id: string
+  user_id:        string
+  rating:         number    // 1–5
+  comment:        string | null
+  created_at:     string
+  profile?:       Profile
+  reservation?:   Reservation
+}
+
+export interface CreateReviewDTO {
+  reservation_id: string
+  rating:         number
+  comment?:       string
+}
+
+// ------------------------------------------------------------
 // Métricas del admin
 // ------------------------------------------------------------
 export interface DashboardMetrics {

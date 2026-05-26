@@ -10,21 +10,31 @@ import {
   LogOut,
   Menu,
   X,
+  BarChart2,
+  UsersRound,
+  Sun,
+  Moon,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
+import { useDarkMode } from '@/hooks/useDarkMode'
+import { useRealtimeReservations } from '@/hooks/useRealtimeReservations'
 import { Button } from '@/components/ui/button'
 
 const adminNavLinks = [
-  { to: '/admin',               label: 'Dashboard',      icon: LayoutDashboard, end: true  },
-  { to: '/admin/calendario',    label: 'Calendario',     icon: CalendarDays,    end: false },
-  { to: '/admin/reservas',      label: 'Reservas',       icon: ClipboardList,   end: false },
-  { to: '/admin/lista-espera',  label: 'Lista de espera', icon: Users,          end: false },
-  { to: '/admin/ajustes',       label: 'Ajustes',        icon: Settings,        end: false },
+  { to: '/admin',               label: 'Dashboard',       icon: LayoutDashboard, end: true  },
+  { to: '/admin/calendario',    label: 'Calendario',      icon: CalendarDays,    end: false },
+  { to: '/admin/reservas',      label: 'Reservas',        icon: ClipboardList,   end: false },
+  { to: '/admin/lista-espera',  label: 'Lista de espera', icon: Users,           end: false },
+  { to: '/admin/clientes',      label: 'Clientes',        icon: UsersRound,      end: false },
+  { to: '/admin/reportes',      label: 'Reportes',        icon: BarChart2,       end: false },
+  { to: '/admin/ajustes',       label: 'Ajustes',         icon: Settings,        end: false },
 ] as const
 
 export default function AdminLayout() {
   const { profile, signOut } = useAuth()
+  const { isDark, toggle: toggleDark } = useDarkMode()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  useRealtimeReservations()   // ← suscripción global mientras el admin está activo
 
   const initials = profile?.full_name?.[0]?.toUpperCase() ?? 'A'
 
@@ -101,6 +111,14 @@ export default function AdminLayout() {
               <p className="text-xs text-sidebar-foreground/60">Administrador</p>
             </div>
           </div>
+          <button
+            onClick={toggleDark}
+            title={isDark ? 'Modo claro' : 'Modo oscuro'}
+            className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+          >
+            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            {isDark ? 'Modo claro' : 'Modo oscuro'}
+          </button>
           <Button
             variant="ghost"
             size="sm"

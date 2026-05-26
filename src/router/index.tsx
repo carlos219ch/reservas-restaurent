@@ -17,6 +17,8 @@ const CalendarPage       = lazy(() => import('@/pages/admin/CalendarPage'))
 const ReservationsPage   = lazy(() => import('@/pages/admin/ReservationsPage'))
 const WaitlistPage       = lazy(() => import('@/pages/admin/WaitlistPage'))
 const SettingsPage       = lazy(() => import('@/pages/admin/SettingsPage'))
+const ReportsPage        = lazy(() => import('@/pages/admin/ReportsPage'))
+const ClientsPage        = lazy(() => import('@/pages/admin/ClientsPage'))
 
 // -----------------------------------------------------------------
 // Componentes de carga y guardias de ruta
@@ -95,9 +97,11 @@ export function AppRouter() {
             element={<ProtectedRoute adminOnly><AdminLayout /></ProtectedRoute>}
           >
             <Route index element={<DashboardPage />} />
-            <Route path="calendario" element={<CalendarPage />} />
-            <Route path="reservas"      element={<ReservationsPage />} />
+            <Route path="calendario"   element={<CalendarPage />} />
+            <Route path="reservas"     element={<ReservationsPage />} />
             <Route path="lista-espera" element={<WaitlistPage />} />
+            <Route path="clientes"     element={<ClientsPage />} />
+            <Route path="reportes"     element={<ReportsPage />} />
             <Route path="ajustes"      element={<SettingsPage />} />
           </Route>
 
