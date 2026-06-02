@@ -1,10 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
 import { sendReservationEmail } from '@/hooks/useNotifications'
 import type { Reservation, CreateReservationDTO, ReservationStatus, SpecialOccasion } from '@/types'
 
 // ----------------------------------------------------------------
-// Admin: all reservations with optional filters
+// Admin: todas las reservas con filtros opcionales
 // ----------------------------------------------------------------
 export interface AdminReservationFilters {
   status:   ReservationStatus | 'todas'
@@ -13,15 +14,17 @@ export interface AdminReservationFilters {
 }
 
 export function useAdminReservations(filters: AdminReservationFilters) {
+  const { restaurantId } = useAuth()
+
   return useQuery({
-    queryKey: ['admin', 'reservations', filters],
+    queryKey: ['admin', 'reservations', filters, restaurantId],
     queryFn: async (): Promise<Reservation[]> => {
       const allStatuses: ReservationStatus[] = ['pendiente', 'confirmada', 'cancelada', 'completada', 'no_show']
       const statuses = filters.status === 'todas' ? allStatuses : [filters.status]
       const from     = filters.dateFrom || '2000-01-01'
       const to       = filters.dateTo   || '2099-12-31'
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('reservations')
         .select('*, table:tables(*, zone:zones(*)), time_slot:time_slots(*), profile:profiles(*)')
         .in('status', statuses)
@@ -29,12 +32,20 @@ export function useAdminReservations(filters: AdminReservationFilters) {
         .lte('date', to)
         .order('date', { ascending: false })
         .order('time_slot_id')
+
+      if (restaurantId) query = query.eq('restaurant_id', restaurantId)
+
+      const { data, error } = await query
       if (error) throw new Error(error.message)
       return data
     },
+    enabled: !!restaurantId,
   })
 }
 
+// ----------------------------------------------------------------
+// Admin: cambiar estado de una reserva
+// ----------------------------------------------------------------
 export function useUpdateReservation() {
   const queryClient = useQueryClient()
 
@@ -58,18 +69,15 @@ export function useUpdateReservation() {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       queryClient.invalidateQueries({ queryKey: ['availability'] })
 
-      // Email al cliente cuando el admin confirma o cancela
       if ((status === 'confirmada' || status === 'cancelada') && reservation.profile) {
         const { data: { user } } = await supabase.auth.getUser()
-        // Obtenemos el email del propietario de la reserva desde auth
-        // (solo disponible si el admin tiene service_role; en su defecto se omite)
         const profileEmail = user?.email
         if (profileEmail && reservation.profile.id === user?.id) {
           sendReservationEmail({
-            type:        status === 'confirmada' ? 'confirmed' : 'cancelled',
+            type:      status === 'confirmada' ? 'confirmed' : 'cancelled',
             reservation,
-            userEmail:   profileEmail,
-            userName:    reservation.profile.full_name,
+            userEmail: profileEmail,
+            userName:  reservation.profile.full_name,
           })
         }
       }
@@ -77,13 +85,16 @@ export function useUpdateReservation() {
   })
 }
 
+// ----------------------------------------------------------------
+// Cliente: mis reservas
+// ----------------------------------------------------------------
 export function useMyReservations() {
   return useQuery({
     queryKey: ['reservations', 'mine'],
     queryFn: async (): Promise<Reservation[]> => {
       const { data, error } = await supabase
         .from('reservations')
-        .select('*, table:tables(*, zone:zones(*)), time_slot:time_slots(*)')
+        .select('*, table:tables(*, zone:zones(*)), time_slot:time_slots(*), restaurant:restaurants(name)')
         .order('date', { ascending: false })
         .order('created_at', { ascending: false })
       if (error) throw new Error(error.message)
@@ -92,6 +103,9 @@ export function useMyReservations() {
   })
 }
 
+// ----------------------------------------------------------------
+// Cliente: cancelar reserva
+// ----------------------------------------------------------------
 export function useCancelReservation() {
   const queryClient = useQueryClient()
 
@@ -110,25 +124,23 @@ export function useCancelReservation() {
       queryClient.invalidateQueries({ queryKey: ['reservations'] })
       queryClient.invalidateQueries({ queryKey: ['availability'] })
 
-      // Notificar por email al propio cliente que canceló
       const { data: { user } } = await supabase.auth.getUser()
       if (user?.email) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name')
-          .eq('id', user.id)
-          .single()
+        const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user.id).single()
         sendReservationEmail({
-          type:        'cancelled',
+          type:      'cancelled',
           reservation,
-          userEmail:   user.email,
-          userName:    profile?.full_name ?? 'Cliente',
+          userEmail: user.email,
+          userName:  profile?.full_name ?? 'Cliente',
         })
       }
     },
   })
 }
 
+// ----------------------------------------------------------------
+// Cliente: crear reserva
+// ----------------------------------------------------------------
 export function useCreateReservation() {
   const queryClient = useQueryClient()
 
@@ -144,9 +156,7 @@ export function useCreateReservation() {
         .single()
 
       if (error) {
-        if (error.code === '23505') {
-          throw new Error('Esta mesa ya no está disponible para el horario seleccionado.')
-        }
+        if (error.code === '23505') throw new Error('Esta mesa ya no está disponible para el horario seleccionado.')
         throw new Error('Error al crear la reserva. Intenta de nuevo.')
       }
       return data
@@ -155,19 +165,14 @@ export function useCreateReservation() {
       queryClient.invalidateQueries({ queryKey: ['reservations'] })
       queryClient.invalidateQueries({ queryKey: ['availability'] })
 
-      // Notificar por email al cliente que creó la reserva
       const { data: { user } } = await supabase.auth.getUser()
       if (user?.email) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name')
-          .eq('id', user.id)
-          .single()
+        const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user.id).single()
         sendReservationEmail({
-          type:        'created',
+          type:      'created',
           reservation,
-          userEmail:   user.email,
-          userName:    profile?.full_name ?? 'Cliente',
+          userEmail: user.email,
+          userName:  profile?.full_name ?? 'Cliente',
         })
       }
     },
@@ -175,11 +180,11 @@ export function useCreateReservation() {
 }
 
 // ----------------------------------------------------------------
-// Editar reserva (cliente)
+// Cliente: editar reserva
 // ----------------------------------------------------------------
 export interface EditReservationDTO {
   id:           string
-  table_id:     string   // para validar disponibilidad
+  table_id:     string
   date:         string
   time_slot_id: string
   guests:       number
@@ -192,7 +197,6 @@ export function useEditReservation() {
 
   return useMutation({
     mutationFn: async (dto: EditReservationDTO): Promise<Reservation> => {
-      // Verificar que la mesa esté libre en el nuevo horario (excluye esta reserva)
       const { data: conflicts, error: conflictError } = await supabase
         .from('reservations')
         .select('id')
@@ -203,9 +207,7 @@ export function useEditReservation() {
         .neq('id', dto.id)
 
       if (conflictError) throw new Error(conflictError.message)
-      if (conflicts && conflicts.length > 0) {
-        throw new Error('La mesa no está disponible en ese horario. Por favor elige otro.')
-      }
+      if (conflicts && conflicts.length > 0) throw new Error('La mesa no está disponible en ese horario. Por favor elige otro.')
 
       const { data, error } = await supabase
         .from('reservations')
@@ -228,19 +230,14 @@ export function useEditReservation() {
       queryClient.invalidateQueries({ queryKey: ['availability'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
 
-      // Notificar modificación por email
       const { data: { user } } = await supabase.auth.getUser()
       if (user?.email) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name')
-          .eq('id', user.id)
-          .single()
+        const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user.id).single()
         sendReservationEmail({
-          type:        'modified',
+          type:      'modified',
           reservation,
-          userEmail:   user.email,
-          userName:    profile?.full_name ?? 'Cliente',
+          userEmail: user.email,
+          userName:  profile?.full_name ?? 'Cliente',
         })
       }
     },

@@ -2,15 +2,14 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { Table } from '@/types'
 
-export function useTables() {
+// restaurantId opcional: si se omite, trae todas las mesas activas (single-tenant legacy)
+export function useTables(restaurantId?: string | null) {
   return useQuery({
-    queryKey: ['tables'],
+    queryKey: ['tables', restaurantId],
     queryFn: async (): Promise<Table[]> => {
-      const { data, error } = await supabase
-        .from('tables')
-        .select('*, zone:zones(*)')
-        .eq('active', true)
-        .order('number')
+      let query = supabase.from('tables').select('*, zone:zones(*)').eq('active', true).order('number')
+      if (restaurantId) query = query.eq('restaurant_id', restaurantId)
+      const { data, error } = await query
       if (error) throw new Error(error.message)
       return data
     },

@@ -1,30 +1,45 @@
-// src/hooks/useMenuItems.ts
-//
-// CRUD completo para los ítems de la carta del restaurante.
-// Los clientes solo leen ítems disponibles (RLS).
-// Los admins tienen acceso total.
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
 import type { MenuItem, CreateMenuItemDTO, UpdateMenuItemDTO } from '@/types'
 
 // ----------------------------------------------------------------
-// Leer carta (todos los ítems ordenados por categoría y sort_order)
+// Carta pública del restaurante (para el chat IA del cliente)
 // ----------------------------------------------------------------
-export function useMenuItems() {
+export function usePublicMenuItems(restaurantId: string | null | undefined) {
   return useQuery({
-    queryKey: ['menu_items'],
+    queryKey: ['menu_items', 'public', restaurantId],
     queryFn: async (): Promise<MenuItem[]> => {
+      if (!restaurantId) return []
       const { data, error } = await supabase
-        .from('menu_items')
-        .select('*')
-        .order('category')
-        .order('sort_order')
-        .order('name')
+        .from('menu_items').select('*')
+        .eq('restaurant_id', restaurantId).eq('available', true)
+        .order('category').order('sort_order')
       if (error) throw new Error(error.message)
       return data as MenuItem[]
     },
-    staleTime: 1000 * 60 * 5, // 5 min — la carta no cambia muy seguido
+    enabled: !!restaurantId,
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+// ----------------------------------------------------------------
+// Leer carta (admin — scoped al restaurante)
+// ----------------------------------------------------------------
+export function useMenuItems() {
+  const { restaurantId } = useAuth()
+
+  return useQuery({
+    queryKey: ['menu_items', restaurantId],
+    queryFn: async (): Promise<MenuItem[]> => {
+      let query = supabase.from('menu_items').select('*').order('category').order('sort_order').order('name')
+      if (restaurantId) query = query.eq('restaurant_id', restaurantId)
+      const { data, error } = await query
+      if (error) throw new Error(error.message)
+      return data as MenuItem[]
+    },
+    enabled: !!restaurantId,
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -33,20 +48,19 @@ export function useMenuItems() {
 // ----------------------------------------------------------------
 export function useCreateMenuItem() {
   const qc = useQueryClient()
+  const { restaurantId } = useAuth()
 
   return useMutation({
     mutationFn: async (dto: CreateMenuItemDTO): Promise<MenuItem> => {
       const { data, error } = await supabase
         .from('menu_items')
-        .insert(dto)
+        .insert({ ...dto, restaurant_id: restaurantId })
         .select()
         .single()
       if (error) throw new Error(error.message)
       return data as MenuItem
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['menu_items'] })
-    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['menu_items'] }),
   })
 }
 
@@ -67,9 +81,7 @@ export function useUpdateMenuItem() {
       if (error) throw new Error(error.message)
       return data as MenuItem
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['menu_items'] })
-    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['menu_items'] }),
   })
 }
 
@@ -81,14 +93,9 @@ export function useDeleteMenuItem() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('menu_items')
-        .delete()
-        .eq('id', id)
+      const { error } = await supabase.from('menu_items').delete().eq('id', id)
       if (error) throw new Error(error.message)
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['menu_items'] })
-    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['menu_items'] }),
   })
 }

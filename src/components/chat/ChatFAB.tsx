@@ -13,7 +13,9 @@ import { useChat } from '@/hooks/useChat'
 import { useTimeSlots } from '@/hooks/useTimeSlots'
 import { useAvailability } from '@/hooks/useAvailability'
 import { useCreateReservation } from '@/hooks/useReservations'
-import { useMenuItems } from '@/hooks/useMenuItems'
+import { usePublicMenuItems } from '@/hooks/useMenuItems'
+import { useRestaurantContextStore } from '@/store/restaurantContextStore'
+import { useRestaurants } from '@/hooks/useRestaurants'
 
 export default function ChatFAB() {
   const [open, setOpen]       = useState(false)
@@ -21,8 +23,14 @@ export default function ChatFAB() {
   const [input, setInput]     = useState('')
   const bottomRef             = useRef<HTMLDivElement>(null)
 
-  const { data: slots = [] }     = useTimeSlots()
-  const { data: menuItems = [] } = useMenuItems()
+  // Restaurante activo: el último que visitó el cliente, o el primero de la lista
+  const { activeRestaurantId, activeRestaurantName } = useRestaurantContextStore()
+  const { data: allRestaurants = [] } = useRestaurants()
+  const restaurantId   = activeRestaurantId   ?? allRestaurants[0]?.id   ?? null
+  const restaurantName = activeRestaurantName ?? allRestaurants[0]?.name ?? 'Mesa Fácil'
+
+  const { data: slots = [] }     = useTimeSlots(restaurantId)
+  const { data: menuItems = [] } = usePublicMenuItems(restaurantId)
   const slotLabels               = slots.map(s => s.slot_time.slice(0, 5))
 
   const { messages, intent, isLoading, error, sendMessage, reset } = useChat(slotLabels, menuItems)
@@ -32,6 +40,7 @@ export default function ChatFAB() {
   const { tablesWithAvailability } = useAvailability(
     intent?.date ?? null,
     matchedSlot?.id ?? null,
+    restaurantId,
   )
   const availableTable = tablesWithAvailability.find(
     t => t.availability === 'disponible' && t.capacity >= (intent?.guests ?? 0),
@@ -46,12 +55,13 @@ export default function ChatFAB() {
     if (!canBook) return
     createReservation.mutate(
       {
-        date:         intent!.date!,
-        time_slot_id: matchedSlot!.id,
-        table_id:     availableTable!.id,
-        guests:       intent!.guests!,
-        occasion:     intent!.occasion ?? 'ninguna',
-        notes:        intent!.notes?.trim() || undefined,
+        date:          intent!.date!,
+        time_slot_id:  matchedSlot!.id,
+        table_id:      availableTable!.id,
+        guests:        intent!.guests!,
+        occasion:      intent!.occasion ?? 'ninguna',
+        notes:         intent!.notes?.trim() || undefined,
+        restaurant_id: restaurantId,
       },
       { onSuccess: () => setSuccess(true) },
     )
@@ -104,7 +114,7 @@ export default function ChatFAB() {
             </div>
             <div className="leading-none">
               <p className="text-sm font-semibold">Asistente IA</p>
-              <p className="text-[11px] opacity-50 mt-0.5">Mesa Fácil · Groq</p>
+              <p className="text-[11px] opacity-50 mt-0.5">{restaurantName}</p>
             </div>
           </div>
           <div className="flex items-center gap-0.5">

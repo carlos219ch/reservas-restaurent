@@ -41,7 +41,7 @@ export default function ClientSidebar() {
             <UtensilsCrossed className="h-4 w-4 text-primary-foreground" />
           </div>
           <Link to="/" className="font-bold text-base hover:opacity-80 transition-opacity">
-            Mesa Fácil
+            MesaFácil
           </Link>
         </div>
 

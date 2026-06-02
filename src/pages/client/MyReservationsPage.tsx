@@ -81,9 +81,17 @@ function ReservationCard({ reservation, onCancel, cancelling }: ReservationCardP
       />
     )}
     <div className="rounded-xl border bg-card p-5 space-y-4">
-      {/* Encabezado: fecha + badge */}
+      {/* Encabezado: restaurante + fecha + badge */}
       <div className="flex items-start justify-between gap-3">
         <div>
+          {reservation.restaurant?.name && (
+            <Link
+              to={`/restaurante/${reservation.restaurant_id}`}
+              className="text-xs font-semibold text-primary hover:underline mb-1 block"
+            >
+              {reservation.restaurant.name}
+            </Link>
+          )}
           <p className="font-semibold capitalize text-sm">
             {formatDate(reservation.date)}
           </p>

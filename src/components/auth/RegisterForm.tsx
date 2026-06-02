@@ -1,6 +1,6 @@
 // src/components/auth/RegisterForm.tsx
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
  
@@ -59,6 +59,8 @@ function validateFields(fields: RegisterFields): FieldErrors {
 // -----------------------------------------------------------------
 export default function RegisterForm() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const redirect = searchParams.get('redirect') || '/'
  
   const [fields, setFields] = useState<RegisterFields>({
     fullName: '',
@@ -108,7 +110,7 @@ export default function RegisterForm() {
       return
     }
  
-    navigate('/')
+    navigate(decodeURIComponent(redirect))
   }
  
   return (

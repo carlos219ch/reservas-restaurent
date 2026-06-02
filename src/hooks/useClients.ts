@@ -1,40 +1,36 @@
-// src/hooks/useClients.ts
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
 import type { Profile, Reservation } from '@/types'
 
-// ----------------------------------------------------------------
-// Tipos
-// ----------------------------------------------------------------
 export interface ClientSummary {
-  profile:        Profile
+  profile:           Profile
   totalReservations: number
   completedCount:    number
   noShowCount:       number
   lastVisit:         string | null
-  noShowRate:        number   // %
+  noShowRate:        number
 }
 
-// ----------------------------------------------------------------
-// Lista de todos los clientes con stats
-// ----------------------------------------------------------------
 export function useClients() {
+  const { restaurantId } = useAuth()
+
   return useQuery({
-    queryKey: ['clients', 'list'],
+    queryKey: ['clients', 'list', restaurantId],
     queryFn: async (): Promise<ClientSummary[]> => {
+      let resQuery = supabase
+        .from('reservations')
+        .select('user_id, status, date')
+        .neq('status', 'pendiente')
+
+      if (restaurantId) resQuery = resQuery.eq('restaurant_id', restaurantId)
+
       const [profilesRes, reservationsRes] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('role', 'cliente')
-          .order('full_name'),
-        supabase
-          .from('reservations')
-          .select('user_id, status, date')
-          .neq('status', 'pendiente'),
+        supabase.from('profiles').select('*').eq('role', 'cliente').order('full_name'),
+        resQuery,
       ])
 
-      if (profilesRes.error) throw new Error(profilesRes.error.message)
+      if (profilesRes.error)     throw new Error(profilesRes.error.message)
       if (reservationsRes.error) throw new Error(reservationsRes.error.message)
 
       const profiles     = profilesRes.data
@@ -44,7 +40,7 @@ export function useClients() {
         const own       = reservations.filter(r => r.user_id === profile.id)
         const completed = own.filter(r => r.status === 'completada').length
         const noShows   = own.filter(r => r.status === 'no_show').length
-        const active    = own.filter(r => !['cancelada'].includes(r.status)).length
+        const active    = own.filter(r => r.status !== 'cancelada').length
         const lastVisit = own
           .filter(r => r.status === 'completada')
           .sort((a, b) => b.date.localeCompare(a.date))[0]?.date ?? null
@@ -55,29 +51,33 @@ export function useClients() {
           completedCount:    completed,
           noShowCount:       noShows,
           lastVisit,
-          noShowRate:        active > 0 ? Math.round((noShows / active) * 100) : 0,
+          noShowRate: active > 0 ? Math.round((noShows / active) * 100) : 0,
         }
       })
     },
+    enabled: !!restaurantId,
     staleTime: 1000 * 60 * 5,
   })
 }
 
-// ----------------------------------------------------------------
-// Historial completo de un cliente
-// ----------------------------------------------------------------
 export function useClientReservations(userId: string) {
+  const { restaurantId } = useAuth()
+
   return useQuery({
-    queryKey: ['clients', 'reservations', userId],
+    queryKey: ['clients', 'reservations', userId, restaurantId],
     queryFn: async (): Promise<Reservation[]> => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('reservations')
         .select('*, table:tables(*, zone:zones(*)), time_slot:time_slots(*)')
         .eq('user_id', userId)
         .order('date', { ascending: false })
+
+      if (restaurantId) query = query.eq('restaurant_id', restaurantId)
+
+      const { data, error } = await query
       if (error) throw new Error(error.message)
       return data
     },
-    enabled: !!userId,
+    enabled: !!userId && !!restaurantId,
   })
 }

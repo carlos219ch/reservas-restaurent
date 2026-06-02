@@ -31,7 +31,11 @@ const STEPS = ['Fecha y hora', 'Mesa', 'Confirmar'] as const
 // ----------------------------------------------------------------
 // Componente principal
 // ----------------------------------------------------------------
-export default function ReservationForm() {
+interface ReservationFormProps {
+  restaurantId?: string | null
+}
+
+export default function ReservationForm({ restaurantId }: ReservationFormProps) {
   const navigate = useNavigate()
   const [step, setStep] = useState(0)
   const [success, setSuccess] = useState(false)
@@ -42,11 +46,11 @@ export default function ReservationForm() {
     reset,
   } = useReservationStore()
 
-  const { data: slots = [], isLoading: slotsLoading } = useTimeSlots()
-  const { tablesWithAvailability, isLoading: availLoading } = useAvailability(date, timeSlotId)
-  const createReservation   = useCreateReservation()
+  const { data: slots = [], isLoading: slotsLoading } = useTimeSlots(restaurantId)
+  const { tablesWithAvailability, isLoading: availLoading } = useAvailability(date, timeSlotId, restaurantId)
+  const createReservation      = useCreateReservation()
   const { data: floorPlanUrl } = useFloorPlanImage()
-  const { data: blockedDatesData = [] } = useBlockedDates()
+  const { data: blockedDatesData = [] } = useBlockedDates(restaurantId)
   const blockedDateStrings = blockedDatesData.map(b => b.date)
 
   const selectedSlot = slots.find(s => s.id === timeSlotId)
@@ -63,11 +67,12 @@ export default function ReservationForm() {
     if (!date || !timeSlotId || !tableId) return
     await createReservation.mutateAsync({
       date,
-      time_slot_id: timeSlotId,
-      table_id: tableId,
+      time_slot_id:  timeSlotId,
+      table_id:      tableId,
       guests,
       occasion,
-      notes: notes.trim() || undefined,
+      notes:         notes.trim() || undefined,
+      restaurant_id: restaurantId ?? null,
     })
     setSuccess(true)
     reset()

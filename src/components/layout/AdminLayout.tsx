@@ -20,6 +20,7 @@ import {
 import { useAuth } from '@/hooks/useAuth'
 import { useDarkMode } from '@/hooks/useDarkMode'
 import { useRealtimeReservations } from '@/hooks/useRealtimeReservations'
+import { useMyRestaurant } from '@/hooks/useRestaurants'
 import { Button } from '@/components/ui/button'
 import QRScannerModal from '@/components/admin/QRScannerModal'
 
@@ -35,12 +36,14 @@ const adminNavLinks = [
 ] as const
 
 export default function AdminLayout() {
-  const { profile, signOut } = useAuth()
+  const { profile, signOut, restaurantId } = useAuth()
   const { isDark, toggle: toggleDark } = useDarkMode()
   const [sidebarOpen,  setSidebarOpen]  = useState(false)
   const [showScanner,  setShowScanner]  = useState(false)
-  useRealtimeReservations()   // ← suscripción global mientras el admin está activo
+  useRealtimeReservations()
 
+  const { data: restaurant } = useMyRestaurant(restaurantId)
+  const restaurantName = restaurant?.name ?? 'Mesa Fácil'
   const initials = profile?.full_name?.[0]?.toUpperCase() ?? 'A'
 
   return (
@@ -72,7 +75,7 @@ export default function AdminLayout() {
             className="flex items-center gap-2 font-semibold text-sidebar-foreground hover:opacity-80 transition-opacity"
           >
             <UtensilsCrossed className="h-5 w-5" />
-            <span>Mesa Fácil</span>
+            <span className="truncate max-w-[140px]">{restaurantName}</span>
           </Link>
           <button
             className="md:hidden p-1 text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors"

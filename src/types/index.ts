@@ -6,7 +6,7 @@
 // ------------------------------------------------------------
 // Enums (deben coincidir con los tipos de Supabase)
 // ------------------------------------------------------------
-export type UserRole          = 'cliente' | 'admin'
+export type UserRole          = 'cliente' | 'admin' | 'super_admin'
 export type ReservationStatus = 'pendiente' | 'confirmada' | 'cancelada' | 'completada' | 'no_show'
 export type SpecialOccasion   = 'ninguna' | 'cumpleanos' | 'aniversario' | 'negocios' | 'otro'
 export type TableShape        = 'round' | 'square' | 'rect'
@@ -14,14 +14,52 @@ export type TableShape        = 'round' | 'square' | 'rect'
 // ------------------------------------------------------------
 // Entidades base
 // ------------------------------------------------------------
+// ------------------------------------------------------------
+// Plataforma multi-restaurante
+// ------------------------------------------------------------
+export type PriceRange = 1 | 2 | 3 | 4
+
+export interface Restaurant {
+  id:              string
+  name:            string
+  description:     string | null
+  cuisine_type:    string | null
+  address:         string | null
+  city:            string
+  zone:            string | null
+  phone:           string | null
+  email:           string | null
+  website:         string | null
+  cover_image_url: string | null
+  logo_url:        string | null
+  price_range:     PriceRange
+  avg_rating:      number
+  total_reviews:   number
+  active:          boolean
+  created_at:      string
+}
+
+export interface CreateRestaurantDTO {
+  name:         string
+  description?: string
+  cuisine_type?: string
+  address?:     string
+  city:         string
+  zone?:        string
+  phone?:       string
+  email?:       string
+  price_range?: PriceRange
+}
+
 export interface Profile {
-  id:          string
-  full_name:   string
-  phone:       string | null
-  role:        UserRole
-  allergies:   string[] | null
-  preferences: string | null
-  created_at:  string
+  id:            string
+  full_name:     string
+  phone:         string | null
+  role:          UserRole
+  allergies:     string[] | null
+  preferences:   string | null
+  restaurant_id: string | null
+  created_at:    string
 }
 
 export interface Zone {
@@ -66,9 +104,11 @@ export interface Reservation {
   cancelled_at:       string | null
   created_at:         string
   updated_at:         string
+  restaurant_id?:     string | null
   table?:             Table
   time_slot?:         TimeSlot
   profile?:           Profile
+  restaurant?:        { name: string } | null
 }
 
 export interface WaitlistEntry {
@@ -87,12 +127,13 @@ export interface WaitlistEntry {
 // DTOs
 // ------------------------------------------------------------
 export interface CreateReservationDTO {
-  table_id:     string
-  date:         string
-  time_slot_id: string
-  guests:       number
-  occasion:     SpecialOccasion
-  notes?:       string
+  table_id:      string
+  date:          string
+  time_slot_id:  string
+  guests:        number
+  occasion:      SpecialOccasion
+  notes?:        string
+  restaurant_id?: string | null
 }
 
 export interface UpdateReservationDTO {
