@@ -8,10 +8,15 @@ import { Button } from '@/components/ui/button'
 import { toast } from '@/store/toastStore'
 
 export default function ApprovalsPage() {
-  const { isSuperAdmin } = useAuth()
+  const { isSuperAdmin, loading: authLoading } = useAuth()
   const { data: pending = [], isLoading } = usePendingRestaurants()
   const approveMutation = useApproveRestaurant()
 
+  if (authLoading) return (
+    <div className="flex items-center justify-center h-40">
+      <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+    </div>
+  )
   if (!isSuperAdmin) return <Navigate to="/admin" replace />
 
   async function handleApprove(id: string, name: string) {
