@@ -185,7 +185,7 @@ function CardSkeleton() {
 // Wrapper con fades dinámicos izquierda/derecha
 // ----------------------------------------------------------------
 function CarouselTrack({ scrollRef, children }: {
-  scrollRef: React.RefObject<HTMLDivElement>
+  scrollRef: React.RefObject<HTMLDivElement | null>
   children: React.ReactNode
 }) {
   const [showLeft,  setShowLeft]  = useState(false)

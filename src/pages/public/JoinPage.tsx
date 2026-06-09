@@ -190,7 +190,7 @@ export default function JoinPage() {
                 <div className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold
                   ${step === s
                     ? 'bg-primary text-primary-foreground'
-                    : (step === 'account' && s === 'restaurant') || step === 'success'
+                    : (step === 'account' && s === 'restaurant')
                       ? 'bg-primary/20 text-primary'
                       : 'bg-muted text-muted-foreground'}`}
                 >

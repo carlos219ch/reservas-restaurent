@@ -8,7 +8,7 @@
 // Excel/CSV: parseo client-side con SheetJS (sin llamada a IA)
 // PDF:       extracción de texto con pdf.js → envío a edge function parse-menu → Groq
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useRef } from 'react'
 import * as XLSX from 'xlsx'
 import * as pdfjsLib from 'pdfjs-dist'
 import {
@@ -18,7 +18,6 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { supabase } from '@/lib/supabase'
-import { useMenuItems } from '@/hooks/useMenuItems'
 import { useQueryClient } from '@tanstack/react-query'
 import type { CreateMenuItemDTO } from '@/types'
 
@@ -82,7 +81,7 @@ function rowsToPreview(
 ): PreviewRow[] {
   return rawRows
     .filter(row => row.some(c => c !== null && c !== undefined && c !== ''))
-    .map((row, i) => {
+    .map((row) => {
       const get = (field: string) =>
         colMap[field] !== undefined ? String(row[colMap[field]] ?? '') : ''
       return {
