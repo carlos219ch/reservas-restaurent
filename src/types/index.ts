@@ -213,17 +213,20 @@ export interface MenuItem {
   price:       number
   available:   boolean
   sort_order:  number
+  image_url:   string | null
   created_at:  string
   updated_at:  string
 }
 
 export interface CreateMenuItemDTO {
-  category:     string
-  name:         string
-  description?: string | null
-  price:        number
-  available?:   boolean
-  sort_order?:  number
+  category:      string
+  name:          string
+  description?:  string | null
+  price:         number
+  available?:    boolean
+  sort_order?:   number
+  image_url?:    string | null
+  restaurant_id?: string | null
 }
 
 export type UpdateMenuItemDTO = Partial<CreateMenuItemDTO> & { id: string }

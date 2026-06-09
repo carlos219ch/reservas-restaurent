@@ -3,11 +3,11 @@
 // Gestión de la carta del restaurante: agregar, editar, activar/desactivar
 // y eliminar ítems organizados por categoría.
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import {
   UtensilsCrossed, Plus, Pencil, Trash2, Eye, EyeOff,
   Loader2, ChevronDown, ChevronUp, Search, X, DollarSign,
-  Tag, AlignLeft, ArrowUpDown, Upload,
+  Tag, AlignLeft, ArrowUpDown, Upload, ImagePlus,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -17,6 +17,8 @@ import {
   useDeleteMenuItem,
 } from '@/hooks/useMenuItems'
 import MenuImportModal from '@/components/admin/MenuImportModal'
+import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
 import type { MenuItem, CreateMenuItemDTO } from '@/types'
 
 // ----------------------------------------------------------------
@@ -73,6 +75,7 @@ interface ItemModalProps {
 
 function ItemModal({ item, onClose }: ItemModalProps) {
   const isEdit = !!item
+  const { restaurantId } = useAuth()
 
   const [form, setForm] = useState<ItemFormData>(
     item
@@ -89,11 +92,27 @@ function ItemModal({ item, onClose }: ItemModalProps) {
   const [customCategory, setCustomCategory] = useState(
     item && !PRESET_CATEGORIES.includes(item.category)
   )
-  const [error, setError] = useState('')
+  const [error,        setError]        = useState('')
+  const [imageUrl,     setImageUrl]     = useState<string | null>(item?.image_url ?? null)
+  const [uploading,    setUploading]    = useState(false)
+  const imgInputRef = useRef<HTMLInputElement>(null)
 
   const createMutation = useCreateMenuItem()
   const updateMutation = useUpdateMenuItem()
-  const isPending = createMutation.isPending || updateMutation.isPending
+  const isPending = createMutation.isPending || updateMutation.isPending || uploading
+
+  async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !restaurantId) return
+    setUploading(true)
+    const ext  = file.name.split('.').pop()
+    const path = `menu-items/${restaurantId}/${crypto.randomUUID()}.${ext}`
+    const { error: upErr } = await supabase.storage.from('restaurant-images').upload(path, file, { upsert: true })
+    if (upErr) { setError('Error al subir imagen'); setUploading(false); return }
+    const { data } = supabase.storage.from('restaurant-images').getPublicUrl(path)
+    setImageUrl(data.publicUrl)
+    setUploading(false)
+  }
 
   function set(field: keyof ItemFormData, value: string | boolean) {
     setForm(f => ({ ...f, [field]: value }))
@@ -114,6 +133,7 @@ function ItemModal({ item, onClose }: ItemModalProps) {
       price:       priceNum,
       available:   form.available,
       sort_order:  parseInt(form.sort_order) || 0,
+      image_url:   imageUrl,
     }
 
     if (isEdit && item) {
@@ -259,6 +279,40 @@ function ItemModal({ item, onClose }: ItemModalProps) {
                            focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
+          </div>
+
+          {/* Imagen */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+              <ImagePlus className="h-3.5 w-3.5" /> Imagen
+              <span className="text-muted-foreground/50">(opcional)</span>
+            </label>
+            <div
+              onClick={() => imgInputRef.current?.click()}
+              className="relative h-28 rounded-xl border-2 border-dashed cursor-pointer
+                         hover:border-primary/50 hover:bg-primary/5 transition-colors overflow-hidden"
+            >
+              {imageUrl ? (
+                <>
+                  <img src={imageUrl} alt="" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={e => { e.stopPropagation(); setImageUrl(null) }}
+                    className="absolute top-2 right-2 p-1 rounded-full bg-black/50 text-white hover:bg-black/70"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full gap-1.5 text-muted-foreground">
+                  {uploading
+                    ? <Loader2 className="h-5 w-5 animate-spin" />
+                    : <><Upload className="h-5 w-5" /><span className="text-xs">Click para subir imagen</span></>
+                  }
+                </div>
+              )}
+            </div>
+            <input ref={imgInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
           </div>
 
           {/* Disponible */}
