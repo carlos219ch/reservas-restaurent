@@ -1,10 +1,13 @@
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { RefreshCw, CheckCircle2, XCircle, Clock3, Ban } from 'lucide-react'
+import { RefreshCw, CheckCircle2, XCircle, Clock3, Ban, UtensilsCrossed, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import MetricsCards from '@/components/admin/MetricsCards'
 import { useDashboardMetrics, useTodayReservations } from '@/hooks/useDashboard'
 import { useUpdateReservation } from '@/hooks/useReservations'
+import { useAuth } from '@/hooks/useAuth'
+import { usePendingRestaurants, useRestaurants } from '@/hooks/useRestaurants'
+import { Link } from 'react-router-dom'
 import type { Reservation, ReservationStatus } from '@/types'
 
 // ----------------------------------------------------------------
@@ -116,12 +119,90 @@ function ReservationRow({ reservation: r, onUpdate, updating }: ReservationRowPr
 }
 
 // ----------------------------------------------------------------
+// Dashboard superadmin: resumen global de la plataforma
+// ----------------------------------------------------------------
+function SuperAdminDashboard() {
+  const { data: allRestaurants = [], isLoading: loadingR } = useRestaurants()
+  const { data: pending = [],        isLoading: loadingP } = usePendingRestaurants()
+  const today = format(new Date(), "EEEE d 'de' MMMM yyyy", { locale: es })
+
+  const stats = [
+    { label: 'Restaurantes activos', value: allRestaurants.length, icon: UtensilsCrossed, color: 'text-primary bg-primary/10' },
+    { label: 'Pendientes de aprobación', value: pending.length,    icon: ShieldCheck,     color: 'text-amber-600 bg-amber-100' },
+  ]
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Resumen de la plataforma</h1>
+        <p className="text-muted-foreground text-sm capitalize mt-1">{today}</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        {stats.map(s => (
+          <div key={s.label} className="rounded-xl border bg-card p-5 flex items-center gap-4">
+            <div className={`h-11 w-11 rounded-xl flex items-center justify-center shrink-0 ${s.color}`}>
+              <s.icon className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{loadingR || loadingP ? '…' : s.value}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {pending.length > 0 && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 p-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <ShieldCheck className="h-5 w-5 text-amber-600 shrink-0" />
+            <p className="text-sm text-amber-700 dark:text-amber-400 font-medium">
+              {pending.length} restaurante{pending.length !== 1 ? 's' : ''} esperando aprobación
+            </p>
+          </div>
+          <Link
+            to="/admin/aprobaciones"
+            className="text-sm font-medium text-amber-700 dark:text-amber-400 hover:underline shrink-0"
+          >
+            Ver →
+          </Link>
+        </div>
+      )}
+
+      <div>
+        <h2 className="font-semibold text-base mb-3">Restaurantes activos</h2>
+        {loadingR ? (
+          <div className="space-y-2">
+            {[1,2,3].map(i => <div key={i} className="h-14 rounded-xl bg-muted animate-pulse" />)}
+          </div>
+        ) : (
+          <div className="rounded-xl border bg-card divide-y">
+            {allRestaurants.map(r => (
+              <div key={r.id} className="flex items-center gap-3 px-4 py-3">
+                <UtensilsCrossed className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{r.name}</p>
+                  <p className="text-xs text-muted-foreground">{r.zone ? `${r.zone}, ` : ''}{r.city}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ----------------------------------------------------------------
 // Página principal
 // ----------------------------------------------------------------
 export default function DashboardPage() {
+  const { isSuperAdmin }  = useAuth()
   const metricsQuery    = useDashboardMetrics()
   const todayQuery      = useTodayReservations()
   const updateMutation  = useUpdateReservation()
+
+  if (isSuperAdmin) return <SuperAdminDashboard />
 
   const today = format(new Date(), "EEEE d 'de' MMMM yyyy", { locale: es })
 

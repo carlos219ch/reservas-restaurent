@@ -36,13 +36,14 @@ const baseNavLinks = [
   { to: '/admin/ajustes',       label: 'Ajustes',         icon: Settings,        end: false },
 ]
 
-const superAdminLinks = [
-  { to: '/admin/aprobaciones', label: 'Aprobaciones', icon: ShieldCheck, end: false },
+const superAdminOnlyLinks = [
+  { to: '/admin',              label: 'Resumen',       icon: LayoutDashboard, end: true  },
+  { to: '/admin/aprobaciones', label: 'Aprobaciones',  icon: ShieldCheck,     end: false },
 ]
 
 export default function AdminLayout() {
   const { profile, signOut, restaurantId, isSuperAdmin } = useAuth()
-  const adminNavLinks = isSuperAdmin ? [...baseNavLinks, ...superAdminLinks] : baseNavLinks
+  const adminNavLinks = isSuperAdmin ? superAdminOnlyLinks : baseNavLinks
   const { isDark, toggle: toggleDark } = useDarkMode()
   const [sidebarOpen,  setSidebarOpen]  = useState(false)
   const [showScanner,  setShowScanner]  = useState(false)
