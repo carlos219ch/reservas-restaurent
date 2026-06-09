@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
 import { useQueryClient } from '@tanstack/react-query'
 import type { CreateMenuItemDTO } from '@/types'
 
@@ -219,6 +220,7 @@ interface Props {
 }
 
 export default function MenuImportModal({ onClose }: Props) {
+  const { restaurantId } = useAuth()
   const [step,        setStep]        = useState<Step>('upload')
   const [rows,        setRows]        = useState<PreviewRow[]>([])
   const [parseError,  setParseError]  = useState('')
@@ -372,12 +374,13 @@ export default function MenuImportModal({ onClose }: Props) {
 
     for (const chunk of chunks) {
       const dtos: CreateMenuItemDTO[] = chunk.map(r => ({
-        category:    r.category.trim() || 'Sin categoría',
-        name:        r.name.trim(),
-        description: r.description.trim() || null,
-        price:       parseFloat(r.price) || 0,
-        available:   true,
-        sort_order:  0,
+        category:      r.category.trim() || 'Sin categoría',
+        name:          r.name.trim(),
+        description:   r.description.trim() || null,
+        price:         parseFloat(r.price) || 0,
+        available:     true,
+        sort_order:    0,
+        restaurant_id: restaurantId ?? undefined,
       }))
 
       const { error } = await supabase.from('menu_items').insert(dtos)
