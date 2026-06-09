@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { CheckCircle2, Clock, MapPin, UtensilsCrossed, XCircle } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
@@ -11,6 +12,7 @@ export default function ApprovalsPage() {
   const { isSuperAdmin, loading: authLoading } = useAuth()
   const { data: pending = [], isLoading } = usePendingRestaurants()
   const approveMutation = useApproveRestaurant()
+  const [processingId, setProcessingId] = useState<string | null>(null)
 
   if (authLoading) return (
     <div className="flex items-center justify-center h-40">
@@ -20,8 +22,13 @@ export default function ApprovalsPage() {
   if (!isSuperAdmin) return <Navigate to="/admin" replace />
 
   async function handleApprove(id: string, name: string) {
-    await approveMutation.mutateAsync({ id, approve: true })
-    toast.success(`"${name}" aprobado y visible en la plataforma`)
+    setProcessingId(id)
+    try {
+      await approveMutation.mutateAsync({ id, approve: true })
+      toast.success(`"${name}" aprobado y visible en la plataforma`)
+    } finally {
+      setProcessingId(null)
+    }
   }
 
   if (isLoading) {
@@ -92,7 +99,7 @@ export default function ApprovalsPage() {
                   <Button
                     size="sm"
                     onClick={() => handleApprove(r.id, r.name)}
-                    disabled={approveMutation.isPending}
+                    disabled={processingId === r.id}
                     className="gap-1.5"
                   >
                     <CheckCircle2 className="h-4 w-4" />
