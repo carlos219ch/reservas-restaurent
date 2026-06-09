@@ -11,7 +11,9 @@ interface AuthState {
  
 interface UseAuthReturn extends AuthState {
   isAdmin:        boolean
+  isSuperAdmin:   boolean
   isAuthenticated: boolean
+  userId:         string | null
   restaurantId:   string | null
   signOut:        () => Promise<void>
   refreshProfile: () => Promise<void>
@@ -87,7 +89,9 @@ export function useAuth(): UseAuthReturn {
   return {
     ...state,
     isAdmin:        state.profile?.role === 'admin' || state.profile?.role === 'super_admin',
+    isSuperAdmin:   state.profile?.role === 'super_admin',
     isAuthenticated: !!state.profile,
+    userId:         state.profile?.id ?? null,
     restaurantId:   state.profile?.restaurant_id ?? null,
     signOut,
     refreshProfile,

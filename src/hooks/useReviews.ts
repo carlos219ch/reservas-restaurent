@@ -4,6 +4,51 @@ import { useAuth } from '@/hooks/useAuth'
 import { toast } from '@/store/toastStore'
 import type { Review, CreateReviewDTO } from '@/types'
 
+// ----------------------------------------------------------------
+// Reseñas públicas recientes (para discovery page)
+// ----------------------------------------------------------------
+export interface PublicReview {
+  id:            string
+  rating:        number
+  comment:       string | null
+  created_at:    string
+  restaurant_id: string | null
+  user_id:       string | null
+  profile:       { full_name: string } | null
+}
+
+export function useRecentPublicReviews() {
+  return useQuery({
+    queryKey: ['reviews', 'public-recent'],
+    queryFn: async (): Promise<PublicReview[]> => {
+      const { data: reviews, error } = await supabase
+        .from('reviews')
+        .select('id, rating, comment, created_at, restaurant_id, user_id')
+        .gte('rating', 4)
+        .not('comment', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(10)
+
+      if (error) throw new Error(error.message)
+      if (!reviews?.length) return []
+
+      const userIds = [...new Set(reviews.map(r => r.user_id).filter(Boolean))]
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds)
+
+      const byId = Object.fromEntries((profiles ?? []).map(p => [p.id, p]))
+
+      return reviews.map(r => ({
+        ...r,
+        profile: r.user_id && byId[r.user_id] ? { full_name: byId[r.user_id].full_name } : null,
+      }))
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
 export function useReviewForReservation(reservationId: string) {
   return useQuery({
     queryKey: ['review', reservationId],

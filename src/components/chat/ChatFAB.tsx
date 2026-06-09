@@ -51,6 +51,13 @@ export default function ChatFAB() {
     if (open) bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isLoading, open])
 
+  // Limpiar intent corrupto al montar
+  useEffect(() => {
+    if (intent?.date) {
+      try { parseISO(intent.date) } catch { reset() }
+    }
+  }, [intent, reset])
+
   function handleConfirm() {
     if (!canBook) return
     createReservation.mutate(
@@ -63,13 +70,23 @@ export default function ChatFAB() {
         notes:         intent!.notes?.trim() || undefined,
         restaurant_id: restaurantId,
       },
-      { onSuccess: () => setSuccess(true) },
+      { onSuccess: () => { setSuccess(true); reset() } },
     )
   }
 
+  const AFFIRMATIVES = /^(s[ií]|sí|ok|dale|confirmar?|confirm|yes|adelante|claro|perfecto|listo|bueno|va)[\s!.]*$/i
+
   function handleSend() {
     if (!input.trim()) return
-    sendMessage(input)
+    const text = input.trim()
+    // Si canBook y el usuario confirma con una respuesta afirmativa, crear la reserva directamente
+    if (canBook && !createReservation.isPending && !createReservation.isSuccess && AFFIRMATIVES.test(text)) {
+      sendMessage(text)
+      setInput('')
+      handleConfirm()
+      return
+    }
+    sendMessage(text)
     setInput('')
   }
 
@@ -216,7 +233,7 @@ export default function ChatFAB() {
                     <div className="flex justify-between">
                       <dt className="text-muted-foreground">Fecha</dt>
                       <dd className="font-medium capitalize">
-                        {format(parseISO(intent!.date!), "EEEE d 'de' MMMM", { locale: es })}
+                        {(() => { try { return format(parseISO(intent!.date!), "EEEE d 'de' MMMM", { locale: es }) } catch { return intent!.date } })()}
                       </dd>
                     </div>
                     <div className="flex justify-between">

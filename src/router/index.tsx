@@ -28,6 +28,7 @@ const SettingsPage      = lazy(() => import('@/pages/admin/SettingsPage'))
 const ReportsPage       = lazy(() => import('@/pages/admin/ReportsPage'))
 const ClientsPage       = lazy(() => import('@/pages/admin/ClientsPage'))
 const MenuPage          = lazy(() => import('@/pages/admin/MenuPage'))
+const ApprovalsPage     = lazy(() => import('@/pages/admin/ApprovalsPage'))
 
 // -----------------------------------------------------------------
 // Loader y guardias
@@ -97,8 +98,9 @@ export function AppRouter() {
             <Route path="lista-espera" element={<WaitlistPage />} />
             <Route path="clientes"   element={<ClientsPage />} />
             <Route path="carta"      element={<MenuPage />} />
-            <Route path="reportes"   element={<ReportsPage />} />
-            <Route path="ajustes"    element={<SettingsPage />} />
+            <Route path="reportes"      element={<ReportsPage />} />
+            <Route path="ajustes"       element={<SettingsPage />} />
+            <Route path="aprobaciones"  element={<ApprovalsPage />} />
           </Route>
 
           {/* 404 */}

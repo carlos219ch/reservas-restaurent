@@ -125,10 +125,12 @@ export default function JoinPage() {
       const userId = authData.user?.id
       if (!userId) throw new Error('No se pudo obtener el ID del usuario')
 
-      // 2. Crear restaurante
-      const { data: restaurantData, error: restaurantError } = await supabase
+      // 2. Crear restaurante con ID generado en cliente (evita necesitar SELECT de vuelta)
+      const restaurantId = crypto.randomUUID()
+      const { error: restaurantError } = await supabase
         .from('restaurants')
         .insert({
+          id:           restaurantId,
           name:         restaurant.restaurantName.trim(),
           cuisine_type: restaurant.cuisineType        || null,
           city:         restaurant.city.trim(),
@@ -137,22 +139,19 @@ export default function JoinPage() {
           phone:        restaurant.phone.trim()        || null,
           description:  restaurant.description.trim() || null,
           price_range:  parseInt(restaurant.priceRange),
+          active:       false,
         })
-        .select()
-        .single()
 
       if (restaurantError) throw new Error(restaurantError.message)
 
       // 3. Upsert del perfil con role=admin + restaurant_id
-      // Usamos upsert porque el trigger de Supabase puede no haber corrido aún
-      // o puede haber creado el perfil con role='cliente' antes de que llegáramos aquí.
       const { error: profileError } = await supabase
         .from('profiles')
         .upsert({
           id:            userId,
           full_name:     account.fullName.trim(),
           role:          'admin',
-          restaurant_id: restaurantData.id,
+          restaurant_id: restaurantId,
         })
 
       if (profileError) throw new Error(profileError.message)
@@ -392,15 +391,24 @@ export default function JoinPage() {
         {/* ── Éxito ── */}
         {step === 'success' && (
           <div className="text-center space-y-5 py-10">
-            <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-              <Check className="h-8 w-8 text-primary" />
+            <div className="h-16 w-16 rounded-full bg-amber-100 dark:bg-amber-950/40 flex items-center justify-center mx-auto">
+              <Check className="h-8 w-8 text-amber-600 dark:text-amber-400" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">¡Bienvenido a MesaFácil!</h1>
-              <p className="text-muted-foreground text-sm mt-2">
-                <strong>{restaurant.restaurantName}</strong> ya está en la plataforma.
-                Accedé al panel admin para configurar tus mesas, horarios y carta.
+              <h1 className="text-2xl font-bold">¡Solicitud enviada!</h1>
+              <p className="text-muted-foreground text-sm mt-2 leading-relaxed">
+                <strong>{restaurant.restaurantName}</strong> fue registrado correctamente.
+                Nuestro equipo revisará tu solicitud y activará tu restaurante en la plataforma en breve.
+                Recibirás acceso al panel admin una vez aprobado.
               </p>
+            </div>
+            <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 p-4 text-left max-w-xs mx-auto">
+              <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1">¿Qué sigue?</p>
+              <ul className="text-xs text-amber-700/80 dark:text-amber-400/70 space-y-1 list-disc list-inside">
+                <li>Revisamos tus datos (24-48 hs)</li>
+                <li>Activamos tu restaurante</li>
+                <li>Podés configurar todo desde el panel admin</li>
+              </ul>
             </div>
             <div className="flex flex-col gap-3 max-w-xs mx-auto">
               <Button onClick={() => navigate('/admin')} className="w-full">

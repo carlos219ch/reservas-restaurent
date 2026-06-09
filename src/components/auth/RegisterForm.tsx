@@ -1,6 +1,7 @@
 // src/components/auth/RegisterForm.tsx
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Mail } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
  
@@ -71,6 +72,7 @@ export default function RegisterForm() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [serverError, setServerError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false)
  
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target
@@ -91,16 +93,16 @@ export default function RegisterForm() {
     setLoading(true)
     setServerError(null)
  
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: fields.email,
       password: fields.password,
       options: {
         data: { full_name: fields.fullName.trim() },
       },
     })
- 
+
     setLoading(false)
- 
+
     if (error) {
       if (error.message.includes('already registered')) {
         setServerError('Este correo ya está registrado')
@@ -109,10 +111,46 @@ export default function RegisterForm() {
       }
       return
     }
- 
+
+    // Sin sesión activa = Supabase requiere confirmación de email
+    if (!data.session) {
+      setAwaitingConfirmation(true)
+      return
+    }
+
     navigate(decodeURIComponent(redirect))
   }
  
+  if (awaitingConfirmation) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="w-full max-w-md text-center space-y-5">
+          <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+            <Mail className="h-8 w-8 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">Revisá tu correo</h1>
+            <p className="text-muted-foreground text-sm mt-2 leading-relaxed">
+              Te enviamos un link de confirmación a{' '}
+              <strong className="text-foreground">{fields.email}</strong>.
+              Hacé clic en el link para activar tu cuenta e iniciar sesión.
+            </p>
+          </div>
+          <div className="rounded-xl border bg-card p-4 text-left space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">¿No llegó el correo?</p>
+            <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+              <li>Revisá la carpeta de spam o correo no deseado</li>
+              <li>Puede tardar hasta 2 minutos en llegar</li>
+            </ul>
+          </div>
+          <Link to="/login" className="inline-block text-sm text-primary hover:underline">
+            Ya confirmé mi correo → Iniciar sesión
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-md space-y-8">

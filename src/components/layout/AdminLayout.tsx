@@ -16,6 +16,7 @@ import {
   Moon,
   ScanLine,
   BookOpen,
+  ShieldCheck,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useDarkMode } from '@/hooks/useDarkMode'
@@ -24,7 +25,7 @@ import { useMyRestaurant } from '@/hooks/useRestaurants'
 import { Button } from '@/components/ui/button'
 import QRScannerModal from '@/components/admin/QRScannerModal'
 
-const adminNavLinks = [
+const baseNavLinks = [
   { to: '/admin',               label: 'Dashboard',       icon: LayoutDashboard, end: true  },
   { to: '/admin/calendario',    label: 'Calendario',      icon: CalendarDays,    end: false },
   { to: '/admin/reservas',      label: 'Reservas',        icon: ClipboardList,   end: false },
@@ -33,10 +34,15 @@ const adminNavLinks = [
   { to: '/admin/carta',         label: 'Carta',           icon: BookOpen,        end: false },
   { to: '/admin/reportes',      label: 'Reportes',        icon: BarChart2,       end: false },
   { to: '/admin/ajustes',       label: 'Ajustes',         icon: Settings,        end: false },
-] as const
+]
+
+const superAdminLinks = [
+  { to: '/admin/aprobaciones', label: 'Aprobaciones', icon: ShieldCheck, end: false },
+]
 
 export default function AdminLayout() {
-  const { profile, signOut, restaurantId } = useAuth()
+  const { profile, signOut, restaurantId, isSuperAdmin } = useAuth()
+  const adminNavLinks = isSuperAdmin ? [...baseNavLinks, ...superAdminLinks] : baseNavLinks
   const { isDark, toggle: toggleDark } = useDarkMode()
   const [sidebarOpen,  setSidebarOpen]  = useState(false)
   const [showScanner,  setShowScanner]  = useState(false)

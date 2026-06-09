@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CheckCircle2, ChevronRight } from 'lucide-react'
 import { format } from 'date-fns'
@@ -49,9 +49,34 @@ export default function ReservationForm({ restaurantId }: ReservationFormProps) 
   const { data: slots = [], isLoading: slotsLoading } = useTimeSlots(restaurantId)
   const { tablesWithAvailability, isLoading: availLoading } = useAvailability(date, timeSlotId, restaurantId)
   const createReservation      = useCreateReservation()
-  const { data: floorPlanUrl } = useFloorPlanImage()
+  const { data: floorPlanUrl } = useFloorPlanImage(restaurantId)
   const { data: blockedDatesData = [] } = useBlockedDates(restaurantId)
   const blockedDateStrings = blockedDatesData.map(b => b.date)
+
+  // Zonas únicas derivadas de las mesas
+  const zones = useMemo(() => {
+    const seen = new Map<string, string>()
+    for (const t of tablesWithAvailability) {
+      if (t.zone_id && t.zone?.name && !seen.has(t.zone_id)) {
+        seen.set(t.zone_id, t.zone.name)
+      }
+    }
+    return Array.from(seen.entries()).map(([id, name]) => ({ id, name }))
+  }, [tablesWithAvailability])
+
+  const [activeZone, setActiveZone] = useState<string | null>(null)
+
+  // Seleccionar la primera zona automáticamente al cargar
+  useEffect(() => {
+    if (zones.length > 0 && activeZone === null) {
+      setActiveZone(zones[0].id)
+    }
+  }, [zones, activeZone])
+
+  const visibleTables = useMemo(() => {
+    if (!activeZone || zones.length === 0) return tablesWithAvailability
+    return tablesWithAvailability.filter(t => t.zone_id === activeZone)
+  }, [tablesWithAvailability, activeZone, zones])
 
   const selectedSlot = slots.find(s => s.id === timeSlotId)
   const selectedTable = tablesWithAvailability.find(t => t.id === tableId)
@@ -199,12 +224,29 @@ export default function ReservationForm({ restaurantId }: ReservationFormProps) 
 
           <section>
             <h2 className="text-sm font-semibold mb-3">Plano del restaurante</h2>
+
+            {/* Zone tabs */}
+            {zones.length > 0 && (
+              <div className="flex gap-1.5 p-1 bg-muted rounded-xl overflow-x-auto mb-3">
+                {zones.map(z => (
+                  <button key={z.id}
+                    onClick={() => setActiveZone(z.id)}
+                    className={['px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-all',
+                      activeZone === z.id ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground',
+                    ].join(' ')}
+                  >
+                    {z.name}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {availLoading ? (
               <div className="rounded-xl border bg-muted/20 animate-pulse" style={{ height: '260px' }} />
             ) : (
               <>
                 <FloorPlan
-                  tables={tablesWithAvailability}
+                  tables={visibleTables}
                   selectedId={tableId}
                   guests={guests}
                   onSelect={setTable}

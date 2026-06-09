@@ -129,6 +129,20 @@ export function useCreateTable() {
   })
 }
 
+export function useUpdateTablePosition() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, pos_x, pos_y }: { id: string; pos_x: number; pos_y: number }) => {
+      const { error } = await supabase.from('tables').update({ pos_x, pos_y }).eq('id', id)
+      if (error) throw new Error(error.message)
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['settings', 'tables'] })
+      qc.invalidateQueries({ queryKey: ['tables'] })
+    },
+  })
+}
+
 export function useDeleteTable() {
   const qc = useQueryClient()
   return useMutation({

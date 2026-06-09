@@ -4,6 +4,33 @@ import { useAuth } from '@/hooks/useAuth'
 import type { MenuItem, CreateMenuItemDTO, UpdateMenuItemDTO } from '@/types'
 
 // ----------------------------------------------------------------
+// Platos destacados multi-restaurante (para discovery page)
+// ----------------------------------------------------------------
+export interface MenuHighlight extends MenuItem {
+  restaurant_id: string
+  restaurant: { id: string; name: string; cover_image_url: string | null } | null
+}
+
+export function useWeeklyMenuHighlights() {
+  return useQuery({
+    queryKey: ['menu_items', 'weekly-highlights'],
+    queryFn: async (): Promise<MenuHighlight[]> => {
+      const { data, error } = await supabase
+        .from('menu_items')
+        .select('*, restaurant:restaurants(id, name, cover_image_url)')
+        .eq('available', true)
+        .gt('price', 0)
+        .not('description', 'is', null)
+        .order('sort_order')
+        .limit(12)
+      if (error) throw new Error(error.message)
+      return (data ?? []) as MenuHighlight[]
+    },
+    staleTime: 10 * 60 * 1000,
+  })
+}
+
+// ----------------------------------------------------------------
 // Carta pública del restaurante (para el chat IA del cliente)
 // ----------------------------------------------------------------
 export function usePublicMenuItems(restaurantId: string | null | undefined) {

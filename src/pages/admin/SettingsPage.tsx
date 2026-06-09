@@ -1,13 +1,11 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Clock, LayoutGrid, MapPin, ImagePlus, Trash2, Map, CalendarOff, Store, Loader2 } from 'lucide-react'
 import {
   useAllTimeSlots,  useToggleTimeSlot,  useCreateTimeSlot, useDeleteTimeSlot,
   useAllTables,     useToggleTable,     useCreateTable,    useDeleteTable,
   useAllZones,      useToggleZone,      useCreateZone,     useDeleteZone,
 } from '@/hooks/useSettings'
-import {
-  useFloorPlanImage, useUploadFloorPlan, useRemoveFloorPlan,
-} from '@/hooks/useFloorPlanImage'
+import EditableFloorPlan from '@/components/admin/EditableFloorPlan'
 import { useBlockedDates, useBlockDate, useUnblockDate } from '@/hooks/useBlockedDates'
 import { useMyRestaurant, useUpdateRestaurant, useUploadRestaurantCover } from '@/hooks/useRestaurants'
 import { useAuth } from '@/hooks/useAuth'
@@ -455,140 +453,56 @@ function SectionSkeleton({ rows }: { rows: number }) {
 // Section: Plano
 // ----------------------------------------------------------------
 function PlanoSection() {
-  const fileRef                    = useRef<HTMLInputElement>(null)
-  const [preview, setPreview]      = useState<string | null>(null)
-  const [selected, setSelected]    = useState<File | null>(null)
+  const { data: zones = [], isLoading } = useAllZones()
+  const [activeZone, setActiveZone] = useState<string | undefined>(undefined)
 
-  const { data: currentUrl, isLoading } = useFloorPlanImage()
-  const uploadMutation  = useUploadFloorPlan()
-  const removeMutation  = useRemoveFloorPlan()
+  useEffect(() => {
+    if (zones.length && activeZone === undefined) {
+      setActiveZone(zones[0]?.id ?? '__none__')
+    }
+  }, [zones, activeZone])
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setSelected(file)
-    setPreview(URL.createObjectURL(file))
-  }
+  const tabs = [
+    ...zones.map(z => ({ id: z.id, label: z.name })),
+    { id: '__none__', label: 'Sin zona' },
+  ]
 
-  function handleUpload() {
-    if (!selected) return
-    uploadMutation.mutate(selected, {
-      onSuccess: () => {
-        setSelected(null)
-        setPreview(null)
-        if (fileRef.current) fileRef.current.value = ''
-      },
-    })
-  }
-
-  function handleRemove() {
-    removeMutation.mutate(undefined, {
-      onSuccess: () => {
-        setSelected(null)
-        setPreview(null)
-      },
-    })
-  }
+  const zoneIdForPlan: string | null | undefined = activeZone === '__none__' ? null : activeZone
 
   return (
-    <div className="space-y-5">
-      {/* Current floor plan */}
-      <div className="rounded-xl border bg-card overflow-hidden">
-        <div className="px-5 py-3 border-b flex items-center gap-2">
-          <Map className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Plano actual</span>
-        </div>
-
-        {isLoading ? (
-          <div className="h-48 animate-pulse bg-muted/30" />
-        ) : currentUrl ? (
-          <div className="relative">
-            <img
-              src={currentUrl}
-              alt="Plano del restaurante"
-              className="w-full max-h-64 object-contain bg-muted/10 p-2"
-            />
-            <Button
-              variant="destructive"
-              size="sm"
-              disabled={removeMutation.isPending}
-              onClick={handleRemove}
-              className="absolute top-2 right-2 gap-1.5"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              {removeMutation.isPending ? 'Eliminando…' : 'Eliminar'}
-            </Button>
-          </div>
-        ) : (
-          <div className="h-48 flex flex-col items-center justify-center gap-2 text-muted-foreground">
-            <Map className="h-10 w-10 opacity-20" />
-            <p className="text-sm">No hay plano cargado</p>
-          </div>
-        )}
+    <div className="rounded-xl border bg-card overflow-hidden">
+      <div className="px-5 py-3 border-b flex items-center gap-2">
+        <Map className="h-4 w-4 text-muted-foreground" />
+        <span className="text-sm font-medium">Plano del restaurante</span>
       </div>
 
-      {/* Upload */}
-      <div className="rounded-xl border bg-card p-5 space-y-4">
-        <p className="text-sm font-medium">
-          {currentUrl ? 'Reemplazar plano' : 'Subir plano'}
-        </p>
-        <p className="text-xs text-muted-foreground -mt-2">
-          PNG, JPG o WEBP. Se mostrará como fondo en la selección de mesas al reservar.
-        </p>
-
-        {/* File input */}
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/png,image/jpeg,image/webp"
-          className="hidden"
-          onChange={handleFileChange}
-        />
-
-        {preview ? (
-          <div className="space-y-3">
-            <img
-              src={preview}
-              alt="Vista previa"
-              className="w-full max-h-48 object-contain rounded-lg border bg-muted/10"
-            />
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => { setPreview(null); setSelected(null) }}
-                className="flex-1"
-              >
-                Cancelar
-              </Button>
-              <Button
-                size="sm"
-                disabled={uploadMutation.isPending}
-                onClick={handleUpload}
-                className="flex-1 gap-1.5"
-              >
-                <ImagePlus className="h-3.5 w-3.5" />
-                {uploadMutation.isPending ? 'Subiendo…' : 'Confirmar subida'}
-              </Button>
+      {isLoading ? (
+        <div className="h-64 animate-pulse bg-muted/30" />
+      ) : (
+        <div className="p-4 space-y-4">
+          {/* Zone tabs */}
+          {tabs.length > 1 && (
+            <div className="flex gap-1.5 p-1 bg-muted rounded-xl overflow-x-auto">
+              {tabs.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveZone(tab.id)}
+                  className={[
+                    'px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-all',
+                    activeZone === tab.id
+                      ? 'bg-background shadow-sm text-foreground'
+                      : 'text-muted-foreground hover:text-foreground',
+                  ].join(' ')}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
-            {uploadMutation.isError && (
-              <p className="text-xs text-destructive">
-                {uploadMutation.error instanceof Error ? uploadMutation.error.message : 'Error al subir'}
-              </p>
-            )}
-          </div>
-        ) : (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fileRef.current?.click()}
-            className="gap-2"
-          >
-            <ImagePlus className="h-4 w-4" />
-            Seleccionar imagen
-          </Button>
-        )}
-      </div>
+          )}
+
+          <EditableFloorPlan zoneId={zoneIdForPlan} />
+        </div>
+      )}
     </div>
   )
 }

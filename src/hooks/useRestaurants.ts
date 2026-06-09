@@ -172,6 +172,107 @@ export function useRestaurantCities() {
   })
 }
 
+// ----------------------------------------------------------------
+// Restaurantes más populares hoy (por nº de reservas)
+// ----------------------------------------------------------------
+export function usePopularRestaurantsToday() {
+  const today = new Date().toISOString().split('T')[0]
+  return useQuery({
+    queryKey: ['restaurants', 'popular-today', today],
+    queryFn: async (): Promise<Array<Restaurant & { reservations_today: number }>> => {
+      const { data: reservations, error: resError } = await supabase
+        .from('reservations')
+        .select('restaurant_id')
+        .eq('date', today)
+        .in('status', ['pendiente', 'confirmada', 'completada'])
+
+      if (resError) throw new Error(resError.message)
+      if (!reservations?.length) return []
+
+      const counts: Record<string, number> = {}
+      for (const r of reservations) {
+        if (r.restaurant_id) counts[r.restaurant_id] = (counts[r.restaurant_id] ?? 0) + 1
+      }
+
+      const topIds = Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8)
+        .map(([id]) => id)
+
+      if (!topIds.length) return []
+
+      const { data, error } = await supabase
+        .from('restaurants')
+        .select('*')
+        .in('id', topIds)
+        .eq('active', true)
+
+      if (error) throw new Error(error.message)
+      return (data ?? [])
+        .sort((a, b) => (counts[b.id] ?? 0) - (counts[a.id] ?? 0))
+        .map(r => ({ ...r, reservations_today: counts[r.id] ?? 0 }))
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+// ----------------------------------------------------------------
+// Super_admin: restaurantes pendientes de aprobación
+// ----------------------------------------------------------------
+export function usePendingRestaurants() {
+  return useQuery({
+    queryKey: ['restaurants', 'pending'],
+    queryFn: async (): Promise<Restaurant[]> => {
+      const { data, error } = await supabase
+        .from('restaurants')
+        .select('*')
+        .eq('active', false)
+        .order('created_at', { ascending: false })
+      if (error) throw new Error(error.message)
+      return data ?? []
+    },
+  })
+}
+
+// ----------------------------------------------------------------
+// Super_admin: aprobar o rechazar un restaurante
+// ----------------------------------------------------------------
+export function useApproveRestaurant() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, approve }: { id: string; approve: boolean }) => {
+      const { error } = await supabase
+        .from('restaurants')
+        .update({ active: approve })
+        .eq('id', id)
+      if (error) throw new Error(error.message)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['restaurants'] })
+    },
+  })
+}
+
+// ----------------------------------------------------------------
+// Nuevos en MesaFácil (los más recientemente agregados)
+// ----------------------------------------------------------------
+export function useNewRestaurants() {
+  return useQuery({
+    queryKey: ['restaurants', 'new'],
+    queryFn: async (): Promise<Restaurant[]> => {
+      const { data, error } = await supabase
+        .from('restaurants')
+        .select('*')
+        .eq('active', true)
+        .order('created_at', { ascending: false })
+        .limit(8)
+      if (error) throw new Error(error.message)
+      return data ?? []
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
 export function useRestaurantCuisines() {
   return useQuery({
     queryKey: ['restaurants', 'cuisines'],

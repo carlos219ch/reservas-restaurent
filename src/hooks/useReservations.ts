@@ -89,12 +89,16 @@ export function useUpdateReservation() {
 // Cliente: mis reservas
 // ----------------------------------------------------------------
 export function useMyReservations() {
+  const { userId } = useAuth()
   return useQuery({
-    queryKey: ['reservations', 'mine'],
+    queryKey: ['reservations', 'mine', userId],
     queryFn: async (): Promise<Reservation[]> => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return []
       const { data, error } = await supabase
         .from('reservations')
         .select('*, table:tables(*, zone:zones(*)), time_slot:time_slots(*), restaurant:restaurants(name)')
+        .eq('user_id', user.id)
         .order('date', { ascending: false })
         .order('created_at', { ascending: false })
       if (error) throw new Error(error.message)
@@ -139,6 +143,23 @@ export function useCancelReservation() {
 }
 
 // ----------------------------------------------------------------
+// Normaliza el campo occasion para tolerancia al AI
+// ----------------------------------------------------------------
+const VALID_OCCASIONS = new Set<SpecialOccasion>(['ninguna', 'cumpleanos', 'aniversario', 'negocios', 'otro'])
+
+function normalizeOccasion(raw: string | undefined | null): SpecialOccasion {
+  if (!raw) return 'ninguna'
+  const s = raw.toLowerCase().trim()
+  if (VALID_OCCASIONS.has(s as SpecialOccasion)) return s as SpecialOccasion
+  // tolerar variantes con tilde que puede generar el modelo AI
+  if (s.includes('cumple'))  return 'cumpleanos'
+  if (s.includes('aniver'))  return 'aniversario'
+  if (s.includes('negoc'))   return 'negocios'
+  if (s === 'otro')          return 'otro'
+  return 'ninguna'
+}
+
+// ----------------------------------------------------------------
 // Cliente: crear reserva
 // ----------------------------------------------------------------
 export function useCreateReservation() {
@@ -149,15 +170,22 @@ export function useCreateReservation() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('No autenticado')
 
+      const payload = {
+        ...dto,
+        occasion: normalizeOccasion(dto.occasion),
+        user_id: user.id,
+      }
+
       const { data, error } = await supabase
         .from('reservations')
-        .insert({ user_id: user.id, ...dto })
+        .insert(payload)
         .select('*, table:tables(*, zone:zones(*)), time_slot:time_slots(*)')
         .single()
 
       if (error) {
+        console.error('[useCreateReservation] error:', error.code, error.message, error.details)
         if (error.code === '23505') throw new Error('Esta mesa ya no está disponible para el horario seleccionado.')
-        throw new Error('Error al crear la reserva. Intenta de nuevo.')
+        throw new Error(`Error al crear la reserva: ${error.message}`)
       }
       return data
     },
